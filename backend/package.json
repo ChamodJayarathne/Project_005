@@ -1,0 +1,49 @@
+{
+    "name": "wonder-choice-webapp-backend",
+  "version": "1.0.0",
+  "description": "Wonder Choice Web App Backend API",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "update-check": "npm outdated",
+    "update-patch": "npm update",
+    "update-minor": "npx npm-check-updates -u --target minor",
+    "update-major": "npx npm-check-updates -u",
+    "security-audit": "npm audit",
+    "security-fix": "npm audit fix"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "mongodb",
+    "backend",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.16.2",
+    "multer": "^1.4.5-lts.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.1",
+    "twilio": "^5.7.2",
+    "whatsapp-web.js": "^1.31.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "npm-check-updates": "^18.0.1"
+  }
+}
+
+
