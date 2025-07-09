@@ -145,6 +145,7 @@ export default function App() {
   });
   const navigate = useNavigate();
   const location = useLocation();
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -153,7 +154,7 @@ export default function App() {
       if (token) {
         try {
           const response = await axios.get(
-            "http://localhost:5000/api/protected/current-user",
+            `${baseUrl}/api/protected/current-user`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
 

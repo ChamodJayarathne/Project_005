@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +9,7 @@ function LoginPage({ setUser }) {
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
-    const baseUrl = import.meta.env.VITE_API_BASE_URI;
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -49,8 +48,6 @@ function LoginPage({ setUser }) {
       toast.error(err.response?.data?.msg || "Login failed");
     }
   };
-
-  
 
   return (
     // Main container with exact blue background
@@ -195,7 +192,7 @@ function LoginPage({ setUser }) {
 
             <div className="text-center mt-6 text-gray-500">
               Not a member?{" "}
-              <a href="#" className="text-blue-400 hover:underline">
+              <a href="/register" className="text-blue-400 hover:underline">
                 Signup now
               </a>
             </div>
