@@ -15,6 +15,7 @@ export default function AdminLayout({ onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const location = useLocation();
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   // Fetch current user data
   useEffect(() => {
@@ -37,7 +38,7 @@ export default function AdminLayout({ onLogout }) {
 
         // Then validate with the server
         const response = await axios.get(
-          "http://localhost:5000/api/protected/current-user",
+          `${baseUrl}/api/protected/current-user`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -72,7 +73,6 @@ export default function AdminLayout({ onLogout }) {
     fetchUserData();
   }, [location.pathname]); // Re-fetch when route changes
 
-  
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
@@ -89,8 +89,6 @@ export default function AdminLayout({ onLogout }) {
     );
   }
 
-  
-
   return (
     <div className="flex min-h-screen bg-black">
       {/* Left Sidebar */}
@@ -98,14 +96,11 @@ export default function AdminLayout({ onLogout }) {
         {/* Admin Profile */}
         <div className="px-6 py-8">
           <div className="flex items-center mb-2">
-          
-     
             {/* Profile Image Container */}
             <div className="mb-3">
               {userData?.profileImage ? (
                 <img
-                
-                  src={`http://localhost:5000/${userData.profileImage.replace(
+                  src={`${baseUrl}/${userData.profileImage.replace(
                     /\\/g,
                     "/"
                   )}`}
@@ -130,7 +125,6 @@ export default function AdminLayout({ onLogout }) {
                 {userData.role || "admin"}
               </p>
             </div>
-          
           </div>
         </div>
 
