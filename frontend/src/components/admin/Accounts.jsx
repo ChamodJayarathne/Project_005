@@ -1,26 +1,24 @@
-
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FiUser, FiMail, FiShield, FiTrash2, FiEdit } from "react-icons/fi";
+import { FiUser, FiMail, FiShield, FiTrash2, FiEdit, FiDownload } from "react-icons/fi";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import UserPdfDocument from "../UserPdfDocument";
 
 export default function Accounts() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const baseUrl = import.meta.env.VITE_API_BASE_URI ;
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `${baseUrl}/api/auth/users`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const response = await axios.get(`${baseUrl}/api/auth/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setUsers(response.data);
       } catch (err) {
         setError(err.response?.data?.msg || "Failed to fetch users");
@@ -62,19 +60,48 @@ export default function Accounts() {
 
   return (
     <div className="p-8">
-    
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">User Accounts</h1>
+        <PDFDownloadLink
+          document={<UserPdfDocument users={users} baseUrl={baseUrl} />}
+          fileName="user-accounts-report.pdf"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
+        >
+          {({ loading }) => (
+            <>
+              <FiDownload className="mr-2" />
+              {loading ? "Preparing document..." : "Export to PDF"}
+            </>
+          )}
+        </PDFDownloadLink>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {users.map((user) => (
           <div
             key={user._id}
-            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+            className="bg-white rounded-lg shadow-md h-[300px] overflow-hidden relative hover:shadow-lg transition-shadow cursor-pointer"
             onClick={() => navigate(`/admin/users/${user._id}`)}
           >
             <div className="p-6">
-              <div className="flex items-center mb-4">
-                <div className="bg-blue-100 p-3 rounded-full mr-4">
-                  <FiUser className="text-blue-600 text-xl" />
+              <div className="flex items-center mb-6">
+                <div className=" p-3 rounded-full mr-4">
+                  {user?.profileImage ? (
+                    <img
+                      src={`${baseUrl}/${user.profileImage.replace(
+                        /\\/g,
+                        "/"
+                      )}`}
+                      alt="Profile"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+                    />
+                  ) : (
+                    // <div className="bg-gray-200 border-2 border-dashed rounded-full w-16 h-16 flex items-center justify-center">
+                    //   <span className="text-gray-500 text-xs">No Image</span>
+                    // </div>
+                    <FiUser className="text-blue-600 text-xl" />
+                  )}
+                  {/* <FiUser className="text-blue-600 text-xl" /> */}
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{user.username}</h3>
@@ -99,9 +126,27 @@ export default function Accounts() {
                   {user.role}
                 </span>
               </div>
+
+              <div className="flex items-center text-gray-600 text-sm mt-4">
+                <span className="text-gray-500">Joined: </span>
+                <span className="ml-1">
+                  {new Date(user.createdAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              </div>
+
+              {/* <div>
+                <h3 className="font-semibold text-lg">
+                  Joined Date: {new Date(user.createdAt).toLocaleDateString()}
+                </h3>
+               
+              </div> */}
             </div>
 
-            <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-2">
+            <div className="bg-gray-50 px-6 py-3  absolute bottom-0 w-full flex justify-end space-x-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -127,4 +172,3 @@ export default function Accounts() {
     </div>
   );
 }
-

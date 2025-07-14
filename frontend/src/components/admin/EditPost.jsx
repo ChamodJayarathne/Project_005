@@ -9,7 +9,7 @@ const EditPost = () => {
   const [post, setPost] = useState({
     productName: "",
     fullAmount: "",
-    // unitPrice: "",
+    unitPrice: "",
     expectedProfit: "",
     timeLine: "",
     description: "",
@@ -32,7 +32,7 @@ const EditPost = () => {
           }
         );
         setPost(response.data);
-      
+
         if (response.data.image) {
           setPreview(`${baseUrl}/${response.data.image}`);
         }
@@ -71,7 +71,7 @@ const EditPost = () => {
       const formData = new FormData();
       formData.append("productName", post.productName);
       formData.append("fullAmount", post.fullAmount);
-    
+      formData.append("unitPrice", post.unitPrice);
       formData.append("expectedProfit", post.expectedProfit);
       formData.append("timeLine", post.timeLine);
       formData.append("description", post.description);
@@ -80,16 +80,12 @@ const EditPost = () => {
         formData.append("image", image);
       }
 
-      await axios.put(
-        `${baseUrl}/api/protected/posts/${postId}`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      await axios.put(`${baseUrl}/api/protected/posts/${postId}`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       alert("Post updated successfully");
       navigate(`/admin/posts/${postId}`);
@@ -154,7 +150,17 @@ const EditPost = () => {
             />
           </div>
 
-         
+          <div>
+            <label className="block text-gray-700 mb-2">Unit Price (RS)</label>
+            <input
+              type="number"
+              name="unitPrice"
+              value={post.unitPrice}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
 
           <div>
             <label className="block text-gray-700 mb-2">

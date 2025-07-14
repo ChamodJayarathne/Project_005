@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
@@ -27,8 +26,8 @@ export default function UserDetail() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("posts"); 
-  const baseUrl = import.meta.env.VITE_API_BASE_URI ;
+  const [activeTab, setActiveTab] = useState("posts");
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -122,10 +121,9 @@ export default function UserDetail() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(
-        `${baseUrl}/api/protected/posts/${postId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.delete(`${baseUrl}/api/protected/posts/${postId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       setPosts(posts.filter((post) => post._id !== postId));
       alert("Post deleted successfully");
@@ -140,101 +138,189 @@ export default function UserDetail() {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
+    const margin = 15;
+    let yPos = 20;
 
     // Add title
     doc.setFontSize(20);
-    doc.setTextColor(0, 0, 255);
-    doc.text("User Report", pageWidth / 2, 15, { align: "center" });
+    doc.setTextColor(40, 53, 147); // Dark blue
+    doc.text(
+      `${activeTab === "posts" ? "Admin Posts Report" : "User Orders Report"}`,
+      pageWidth / 2,
+      yPos,
+      { align: "center" }
+    );
+    yPos += 10;
 
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
+    // Add date and user info
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, yPos);
+    doc.text(
+      `User: ${user.username} (${user.email})`,
+      pageWidth - margin,
+      yPos,
+      {
+        align: "right",
+      }
+    );
+    yPos += 15;
 
-    // Add date
-    const today = new Date().toLocaleDateString();
-    doc.text(`Generated on: ${today}`, pageWidth - 15, 10, { align: "right" });
+    // Add a horizontal line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 15;
 
-    // User information section
-    doc.setFontSize(16);
-    doc.text("User Information", 14, 30);
-    doc.setFontSize(12);
+    if (activeTab === "posts" && posts.length > 0) {
+      // Generate PDF with post details
+      doc.setFontSize(16);
+      doc.setTextColor(40, 53, 147);
+      doc.text("Detailed Posts Information", margin, yPos);
+      yPos += 10;
 
-    const userInfo = [
-      [`Name: ${user.name || "N/A"}`],
-      [`Email: ${user.email || "N/A"}`],
-      [`Role: ${user.role || "N/A"}`],
-      [`Status: ${user.status || "N/A"}`],
-      [
-        `Member Since: ${
-          new Date(user.createdAt).toLocaleDateString() || "N/A"
-        }`,
-      ],
-    ];
+      posts.forEach((post, index) => {
+        // Check for page break
+        if (yPos > doc.internal.pageSize.height - 50) {
+          doc.addPage();
+          yPos = 20;
+        }
 
-    autoTable(doc, {
-      startY: 35,
-      head: [],
-      body: userInfo,
-      theme: "plain",
-      styles: { cellPadding: 1 },
-    });
+        // Post header
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text(
+          `Post #${index + 1}: ${post.title || "Untitled Post"}`,
+          margin,
+          yPos
+        );
+        yPos += 8;
 
-    // Posts section
-    let yPos = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(16);
-    doc.text("Posts", 14, yPos);
-    doc.setFontSize(12);
+        // Post metadata
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(
+          `Status: ${post.status.toUpperCase()} | Created: ${new Date(
+            post.createdAt
+          ).toLocaleDateString()}`,
+          margin,
+          yPos
+        );
+        yPos += 10;
 
-    if (posts.length > 0) {
-      const postsData = posts.map((post) => [
-        post.title,
-        post.status,
-        new Date(post.createdAt).toLocaleDateString(),
-      ]);
+        // Post details table
+        const postDetails = [
+          ["Product Name", post.productName || "N/A"],
+          // ["Category", post.category || "N/A"],
+          ["Amount", `RS.${post.fullAmount?.toLocaleString() || "0"}`],
+          [
+            "Expected Profit",
+            `RS.${post.expectedProfit?.toLocaleString() || "0"}`,
+          ],
+          ["Unit Price", `RS.${post.unitPrice?.toLocaleString() || "0"}`],
+          // ["Location", post.location || "N/A"],
+        ];
 
-      autoTable(doc, {
-        startY: yPos + 5,
-        head: [["Title", "Status", "Created Date"]],
-        body: postsData,
-        theme: "striped",
-        headStyles: { fillColor: [66, 139, 202] },
+        autoTable(doc, {
+          startY: yPos,
+          head: [["Field", "Value"]],
+          body: postDetails,
+          margin: { left: margin },
+          styles: { cellPadding: 3, fontSize: 10 },
+          columnStyles: {
+            0: { fontStyle: "bold", cellWidth: 40 },
+            1: { cellWidth: "auto" },
+          },
+          theme: "grid",
+        });
+
+        yPos = doc.lastAutoTable.finalY + 10;
+
+        // Post description
+        // doc.setFontSize(12);
+        // doc.setTextColor(0, 0, 0);
+        // doc.text("Description:", margin, yPos);
+        // yPos += 6;
+
+        // const description = post.description || "No description provided";
+        // const splitDescription = doc.splitTextToSize(
+        //   description,
+        //   pageWidth - margin * 2
+        // );
+        // doc.setFontSize(10);
+        // doc.setTextColor(50, 50, 50);
+        // doc.text(splitDescription, margin, yPos);
+        // yPos += splitDescription.length * 5 + 15;
+
+        // Separator between posts
+        if (index < posts.length - 1) {
+          doc.setDrawColor(200, 200, 200);
+          doc.line(margin, yPos, pageWidth - margin, yPos);
+          yPos += 15;
+        }
       });
-
-      yPos = doc.lastAutoTable.finalY + 10;
-    } else {
-      doc.text("No posts found for this user", 14, yPos + 5);
+    } else if (activeTab === "orders" && orders.length > 0) {
+      // Generate PDF with order details
+      doc.setFontSize(16);
+      doc.setTextColor(40, 53, 147);
+      doc.text("Detailed Orders Information", margin, yPos);
       yPos += 15;
-    }
 
-    // Orders section
-    doc.setFontSize(16);
-    doc.text("Orders", 14, yPos);
-    doc.setFontSize(12);
-
-    if (orders.length > 0) {
+      // Orders table
       const ordersData = orders.map((order) => [
         order.productName || "N/A",
         `RS.${order.fullAmount?.toLocaleString() || "0"}`,
         `RS.${order.expectedProfit?.toLocaleString() || "0"}`,
         order.status.toUpperCase(),
         new Date(order.createdAt).toLocaleDateString(),
+        // order.paymentMethod || "N/A",
+        // order.deliveryAddress || "N/A",
       ]);
 
       autoTable(doc, {
-        startY: yPos + 5,
-        head: [["Product", "Amount", "Profit", "Status", "Date"]],
+        startY: yPos,
+        head: [
+          [
+            "Product",
+            "Amount",
+            "Profit",
+            "Status",
+            "Date",
+            "Payment",
+            "Address",
+          ],
+        ],
         body: ordersData,
-        theme: "striped",
-        headStyles: { fillColor: [66, 139, 202] },
+        margin: { left: margin },
+        styles: { cellPadding: 3, fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 20 },
+          3: { cellWidth: 20 },
+          4: { cellWidth: 20 },
+          5: { cellWidth: 25 },
+          6: { cellWidth: "auto" },
+        },
+        headStyles: { fillColor: [40, 53, 147] },
+        alternateRowStyles: { fillColor: [240, 240, 240] },
       });
+
+      yPos = doc.lastAutoTable.finalY + 10;
     } else {
-      doc.text("No orders found for this user", 14, yPos + 5);
+      // No data available for the active tab
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`No ${activeTab} found for this user`, pageWidth / 2, yPos, {
+        align: "center",
+      });
     }
 
     // Footer
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      doc.setFontSize(10);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
       doc.text(
         `Page ${i} of ${pageCount}`,
         pageWidth / 2,
@@ -244,8 +330,123 @@ export default function UserDetail() {
     }
 
     // Save the PDF
-    doc.save(`User_Report_${user.name || userId}_${today}.pdf`);
+    doc.save(
+      `User_${activeTab}_Report_${
+        user.username || userId
+      }_${new Date().toLocaleDateString()}.pdf`
+    );
   };
+  // const downloadPDF = () => {
+  //   if (!user) return;
+
+  //   const doc = new jsPDF();
+  //   const pageWidth = doc.internal.pageSize.width;
+
+  //   // Add title
+  //   doc.setFontSize(20);
+  //   doc.setTextColor(0, 0, 255);
+  //   doc.text("User Report", pageWidth / 2, 15, { align: "center" });
+
+  //   doc.setFontSize(12);
+  //   doc.setTextColor(0, 0, 0);
+
+  //   // Add date
+  //   const today = new Date().toLocaleDateString();
+  //   doc.text(`Generated on: ${today}`, pageWidth - 15, 10, { align: "right" });
+
+  //   // User information section
+  //   doc.setFontSize(16);
+  //   doc.text("User Information", 14, 30);
+  //   doc.setFontSize(12);
+
+  //   const userInfo = [
+  //     [`Name: ${user.name || "N/A"}`],
+  //     [`Email: ${user.email || "N/A"}`],
+  //     [`Role: ${user.role || "N/A"}`],
+  //     [`Status: ${user.status || "N/A"}`],
+  //     [
+  //       `Member Since: ${
+  //         new Date(user.createdAt).toLocaleDateString() || "N/A"
+  //       }`,
+  //     ],
+  //   ];
+
+  //   autoTable(doc, {
+  //     startY: 35,
+  //     head: [],
+  //     body: userInfo,
+  //     theme: "plain",
+  //     styles: { cellPadding: 1 },
+  //   });
+
+  //   // Posts section
+  //   let yPos = doc.lastAutoTable.finalY + 10;
+  //   doc.setFontSize(16);
+  //   doc.text("Posts", 14, yPos);
+  //   doc.setFontSize(12);
+
+  //   if (posts.length > 0) {
+  //     const postsData = posts.map((post) => [
+  //       post.title,
+  //       post.status,
+  //       new Date(post.createdAt).toLocaleDateString(),
+  //     ]);
+
+  //     autoTable(doc, {
+  //       startY: yPos + 5,
+  //       head: [["Title", "Status", "Created Date"]],
+  //       body: postsData,
+  //       theme: "striped",
+  //       headStyles: { fillColor: [66, 139, 202] },
+  //     });
+
+  //     yPos = doc.lastAutoTable.finalY + 10;
+  //   } else {
+  //     doc.text("No posts found for this user", 14, yPos + 5);
+  //     yPos += 15;
+  //   }
+
+  //   // Orders section
+  //   doc.setFontSize(16);
+  //   doc.text("Orders", 14, yPos);
+  //   doc.setFontSize(12);
+
+  //   if (orders.length > 0) {
+  //     const ordersData = orders.map((order) => [
+  //       order.productName || "N/A",
+  //       `RS.${order.fullAmount?.toLocaleString() || "0"}`,
+  //       `RS.${order.expectedProfit?.toLocaleString() || "0"}`,
+  //       order.status.toUpperCase(),
+  //       new Date(order.createdAt).toLocaleDateString(),
+  //     ]);
+
+  //     autoTable(doc, {
+  //       startY: yPos + 5,
+  //       head: [["Product", "Amount", "Profit", "Status", "Date"]],
+  //       body: ordersData,
+  //       theme: "striped",
+  //       headStyles: { fillColor: [66, 139, 202] },
+  //     });
+  //   } else {
+  //     doc.text("No orders found for this user", 14, yPos + 5);
+  //   }
+
+  //   // Footer
+  //   const pageCount = doc.internal.getNumberOfPages();
+  //   for (let i = 1; i <= pageCount; i++) {
+  //     doc.setPage(i);
+  //     doc.setFontSize(10);
+  //     doc.text(
+  //       `Page ${i} of ${pageCount}`,
+  //       pageWidth / 2,
+  //       doc.internal.pageSize.height - 10,
+  //       { align: "center" }
+  //     );
+  //   }
+
+  //   // Save the PDF
+  //   doc.save(`User_Report_${user.name || userId}_${today}.pdf`);
+  // };
 
   if (loading)
     return (
@@ -373,10 +574,16 @@ export default function UserDetail() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="font-medium">
-                            RS.{post.fullAmount?.toLocaleString() || "0"}
+                            Full Amount: RS.
+                            {post.fullAmount?.toLocaleString() || "0"}
                           </div>
                           <div className="text-green-600">
-                            +RS.{post.expectedProfit?.toLocaleString() || "0"}
+                            Expected Profit: +RS.
+                            {post.expectedProfit?.toLocaleString() || "0"}
+                          </div>
+                          <div className="text-gray-500">
+                            Unit Price: RS.
+                            {post.unitPrice?.toLocaleString() || "0"}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

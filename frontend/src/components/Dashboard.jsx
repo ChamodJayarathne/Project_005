@@ -1,10 +1,10 @@
-
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import OrderSummary from "../components/OrderSummary";
 import item1 from "../assets/img/Item.jpg";
-import { FiDollarSign } from "react-icons/fi";
+import { FiDollarSign, FiFileText } from "react-icons/fi";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function Dashboard({ user, onLogout }) {
   const [userData, setUserData] = useState(user);
@@ -12,8 +12,33 @@ function Dashboard({ user, onLogout }) {
   const [posts, setPosts] = useState([]);
   const [error, setError] = useState(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const [profitSummary, setProfitSummary] = useState({
+    totalPaid: 0,
+    totalRemaining: 0,
+    totalOrders: 0,
+    completedOrders: 0,
+    activeOrders: 0,
+  });
+
+  // const totalExpectedFullAmount =
+  //   order.originalFullAmount +
+  //   (order.expectedProfit || order.originalExpectedProfit);
+  // const totalOriginal = order.originalFullAmount + order.originalExpectedProfit;
 
   const baseUrl = import.meta.env.VITE_API_BASE_URI;
+
+  const fetchProfitSummary = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${baseUrl}/api/protected/orders/profit/summary`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProfitSummary(response.data.data);
+    } catch (error) {
+      console.error("Error fetching profit summary:", error);
+    }
+  };
 
   // Fetch current user data
   useEffect(() => {
@@ -26,7 +51,6 @@ function Dashboard({ user, onLogout }) {
         }
 
         const response = await axios.get(
-      
           `${baseUrl}/api/protected/current-user`,
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -50,40 +74,9 @@ function Dashboard({ user, onLogout }) {
 
   // Fetch posts and orders with refresh capability
   useEffect(() => {
-    // const fetchData = async () => {
-    //   try {
-    //     const token = localStorage.getItem("token");
-    //     if (!token) return;
-
-    //     // Fetch available posts
-    //     const postsResponse = await axios.get(
-    //       "http://localhost:5000/api/protected/posts/available",
-    //       { headers: { Authorization: `Bearer ${token}` } }
-    //     );
-
-    //     // Filter out expired posts (older than 48 hours)
-    //     const filteredPosts = postsResponse.data.filter((post) => {
-    //       const postTime = new Date(post.createdAt).getTime();
-    //       const currentTime = new Date().getTime();
-    //       return currentTime - postTime < 48 * 60 * 60 * 1000;
-    //     });
-
-    //     setPosts(filteredPosts);
-
-    //     // Fetch user orders
-    //     const ordersResponse = await axios.get(
-    //       "http://localhost:5000/api/protected/user/orders",
-    //       { headers: { Authorization: `Bearer ${token}` } }
-    //     );
-    //     setUserOrders(ordersResponse.data);
-    //   } catch (error) {
-    //     console.error("Error fetching data:", error);
-    //   }
-    // };
-
     const fetchData = async () => {
       try {
-         setError(null);
+        setError(null);
         // setLoading(true);
         const token = localStorage.getItem("token");
         if (!token) {
@@ -93,20 +86,19 @@ function Dashboard({ user, onLogout }) {
 
         // Fetch available posts
         const postsResponse = await axios.get(
-            `${baseUrl}/api/protected/posts/available`,
+          `${baseUrl}/api/protected/posts/available`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
         // Filter out expired posts and posts not visible to current user
         const now = new Date();
-        const filteredPosts = postsResponse.data.filter(post => {
+        const filteredPosts = postsResponse.data.filter((post) => {
           const postTime = new Date(post.createdAt);
-          const isExpired = (now - postTime) > 168 * 60 * 60 * 1000;
+          const isExpired = now - postTime > 48 * 60 * 60 * 1000;
           return !isExpired;
         });
 
         setPosts(filteredPosts);
-      
 
         // Fetch user orders
         const ordersResponse = await axios.get(
@@ -114,6 +106,9 @@ function Dashboard({ user, onLogout }) {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setUserOrders(ordersResponse.data);
+
+        // Fetch profit summary
+        await fetchProfitSummary();
       } catch (error) {
         console.error("Network Error:", error);
         setError("Network error. Please try again later.");
@@ -134,6 +129,7 @@ function Dashboard({ user, onLogout }) {
           productName: post.productName,
           fullAmount: post.fullAmount,
           expectedProfit: post.expectedProfit,
+          unitPrice: post.unitPrice,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -148,6 +144,201 @@ function Dashboard({ user, onLogout }) {
         `Investment failed: ${error.response?.data?.message || error.message}`
       );
     }
+  };
+
+  const generateDashboardPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 15;
+    let yPos = 20;
+
+    // Add title and date
+    doc.setFontSize(20);
+    doc.setTextColor(40, 53, 147); // Dark blue
+    doc.text("Investment Dashboard Report", pageWidth / 2, yPos, {
+      align: "center",
+    });
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      `Generated on: ${new Date().toLocaleString()}`,
+      pageWidth - margin,
+      yPos,
+      { align: "right" }
+    );
+    doc.text(
+      `User: ${userData?.username || "N/A"} (${userData?.email || "N/A"})`,
+      margin,
+      yPos
+    );
+    yPos += 15;
+
+    // Add a horizontal line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 15;
+
+    // User Profile Section
+    doc.setFontSize(16);
+    doc.setTextColor(40, 53, 147);
+    doc.text("User Profile", margin, yPos);
+    yPos += 10;
+
+    const profileData = [
+      ["Username:", userData?.username || "N/A"],
+      ["Email:", userData?.email || "N/A"],
+      ["Role:", userData?.role || "N/A"],
+      // [
+      //   "Member Since:",
+      //   userData?.createdAt
+      //     ? new Date(userData.createdAt).toLocaleDateString()
+      //     : "N/A",
+      // ],
+    ];
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Field", "Value"]],
+      body: profileData,
+      margin: { left: margin },
+      styles: { cellPadding: 3, fontSize: 10 },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 40 },
+        1: { cellWidth: "auto" },
+      },
+      theme: "grid",
+    });
+    yPos = doc.lastAutoTable.finalY + 10;
+
+    // Investment Summary Section
+    doc.setFontSize(16);
+    doc.setTextColor(40, 53, 147);
+    doc.text("Investment Summary", margin, yPos);
+    yPos += 10;
+
+    const summaryData = [
+      ["Total Earned Profit", `RS.${profitSummary.totalPaid.toLocaleString()}`],
+      ["Pending Profit", `RS.${profitSummary.totalRemaining.toLocaleString()}`],
+      ["Total Investments", profitSummary.totalOrders],
+      ["Active Investments", profitSummary.activeOrders],
+      ["Completed Investments", profitSummary.completedOrders],
+    ];
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Metric", "Value"]],
+      body: summaryData,
+      margin: { left: margin },
+      styles: { cellPadding: 3, fontSize: 10 },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 60 },
+        1: { cellWidth: "auto" },
+      },
+      headStyles: { fillColor: [40, 53, 147] },
+      theme: "grid",
+    });
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // Trending Orders Section
+    // doc.setFontSize(16);
+    // doc.setTextColor(40, 53, 147);
+    // doc.text("Trending Investment Opportunities", margin, yPos);
+    // yPos += 10;
+
+    // if (posts.length > 0) {
+    //   const trendingData = posts.map((post) => [
+    //     post.productName || "N/A",
+    //     `RS.${post.fullAmount?.toLocaleString() || "0"}`,
+    //     `RS.${post.expectedProfit?.toLocaleString() || "0"}`,
+    //     post.timeLine || "N/A",
+    //     post.createdAt ? new Date(post.createdAt).toLocaleDateString() : "N/A",
+    //   ]);
+
+    //   autoTable(doc, {
+    //     startY: yPos,
+    //     head: [["Product", "Amount", "Profit", "Timeline", "Posted"]],
+    //     body: trendingData,
+    //     margin: { left: margin },
+    //     styles: { cellPadding: 3, fontSize: 8 },
+    //     headStyles: { fillColor: [40, 53, 147] },
+    //     alternateRowStyles: { fillColor: [240, 240, 240] },
+    //     columnStyles: {
+    //       0: { cellWidth: 40 },
+    //       1: { cellWidth: 25 },
+    //       2: { cellWidth: 25 },
+    //       3: { cellWidth: 30 },
+    //       4: { cellWidth: 30 },
+    //     },
+    //   });
+    //   yPos = doc.lastAutoTable.finalY + 15;
+    // } else {
+    //   doc.setFontSize(10);
+    //   doc.setTextColor(100, 100, 100);
+    //   doc.text("No trending orders available", margin, yPos);
+    //   yPos += 10;
+    // }
+
+    // My Investments Section
+    doc.setFontSize(16);
+    doc.setTextColor(40, 53, 147);
+    doc.text("My Investments", margin, yPos);
+    yPos += 10;
+
+    if (userOrders.length > 0) {
+      const investmentData = userOrders.map((order) => [
+        order.productName || "N/A",
+        `RS.${order.originalFullAmount?.toLocaleString() || "0"}`,
+        `RS.${order.originalExpectedProfit?.toLocaleString() || "0"}`,
+        order.status.toUpperCase(),
+        order.createdAt
+          ? new Date(order.createdAt).toLocaleDateString()
+          : "N/A",
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Product", "Amount", "Profit", "Status", "Date"]],
+        body: investmentData,
+        margin: { left: margin },
+        styles: { cellPadding: 3, fontSize: 8 },
+        headStyles: { fillColor: [40, 53, 147] },
+        alternateRowStyles: { fillColor: [240, 240, 240] },
+        columnStyles: {
+          0: { cellWidth: 40 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 30 },
+          4: { cellWidth: 30 },
+        },
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text("No investments made yet", margin, yPos);
+    }
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.height - 10,
+        { align: "center" }
+      );
+    }
+
+    // Save the PDF
+    doc.save(
+      `Investment_Dashboard_${
+        userData?.username || "user"
+      }_${new Date().toLocaleDateString()}.pdf`
+    );
   };
 
   if (error) {
@@ -173,10 +364,7 @@ function Dashboard({ user, onLogout }) {
         <div className="mb-3">
           {userData?.profileImage ? (
             <img
-              src={`${baseUrl}/${userData.profileImage.replace(
-                /\\/g,
-                "/"
-              )}`}
+              src={`${baseUrl}/${userData.profileImage.replace(/\\/g, "/")}`}
               alt="Profile"
               className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
             />
@@ -187,10 +375,65 @@ function Dashboard({ user, onLogout }) {
           )}
         </div>
 
-        <h2 className="text-2xl">
+        {/* <h2 className="text-2xl">
           Welcome {userData?.username || "Investor"}!
-        </h2>
+        </h2> */}
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-2xl">
+            Welcome {userData?.username || "Investor"}!
+          </h2>
+        </div>
         <p className="text-gray-600 mt-2"> {userData?.role || "User"}</p>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={generateDashboardPDF}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center"
+        >
+          <FiFileText className="mr-2" /> Generate PDF Report
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center">
+          <FiDollarSign className="mr-2" /> Investment Summary
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-500">
+              Total Earned Profit
+            </h3>
+            <p className="text-2xl font-bold text-blue-600">
+              RS.{profitSummary.totalPaid.toLocaleString()}
+            </p>
+          </div>
+
+          <div className="bg-green-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-500">
+              Pending Profit
+            </h3>
+            <p className="text-2xl font-bold text-green-600">
+              RS.{profitSummary.totalRemaining.toLocaleString()}
+            </p>
+          </div>
+
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-500">
+              Total Investments
+            </h3>
+            <div className="flex justify-between items-center">
+              <span className="text-2xl font-bold text-purple-600">
+                {profitSummary.totalOrders}
+              </span>
+              <div className="text-sm">
+                <p>Active: {profitSummary.activeOrders}</p>
+                <p>Completed: {profitSummary.completedOrders}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Trending Orders Section */}
@@ -254,14 +497,14 @@ const PostItem = ({ order, onInvest }) => {
   });
   const [expired, setExpired] = useState(false);
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URI ;
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   useEffect(() => {
     if (!order.createdAt) return;
 
     // Calculate expiration time (48 hours from creation)
     const postCreationTime = new Date(order.createdAt).getTime();
-    const expirationTime = postCreationTime + 168 * 60 * 60 * 1000;
+    const expirationTime = postCreationTime + 48 * 60 * 60 * 1000;
 
     const updateTimer = () => {
       const now = new Date().getTime();
@@ -320,6 +563,10 @@ const PostItem = ({ order, onInvest }) => {
           <div className="flex justify-between">
             <span className="text-gray-600">Full Amount:</span>
             <span className="font-medium">RS.{order.fullAmount}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Unit Price:</span>
+            <span className="font-medium">RS.{order.unitPrice}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Expected Profit:</span>

@@ -9,11 +9,11 @@ const Hero = () => {
         {/* Left side content */}
         <div className="md:w-1/2 mb-8 md:mb-0 pr-0 md:pr-8">
           <h2 className="text-blue-600 font-medium text-2xl mb-2">
-            Become a Sharper
+            Become a Sharper 
           </h2>
-          <h1 className="text-gray-900 font-bold text-4xl mb-4">Investor</h1>
+          <h1 className="text-gray-900 font-bold text-4xl mb-4">Customer</h1>
           <p className="text-gray-700 mb-10 max-w-md">
-            Discover investing with Us to trusted Stock market App
+            Discover investing with Us to trusted electronic wholesale market App
           </p>
         </div>
 

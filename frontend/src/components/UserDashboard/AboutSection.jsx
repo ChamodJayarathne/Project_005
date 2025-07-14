@@ -1,5 +1,6 @@
 // AboutSection.jsx
 import React from "react";
+import Director from "../../assets/img/Chinthaka.jpg";
 
 const AboutSection = () => {
   return (
@@ -8,30 +9,27 @@ const AboutSection = () => {
         <h1 className="text-4xl sm:text-5xl font-bold mb-12">WHO WE ARE?</h1>
 
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">About Us</h2>
+          {/* <h2 className="text-2xl font-semibold">About Us</h2> */}
 
           <p className="text-base sm:text-lg">
-            Welcome to Wonder Choice pvt, your trusted partner in stock
-            sharing and smart investing. We are a forward-thinking financial
-            services company dedicated to making the stock market more
-            accessible, transparent, and profitable for everyone.
+            Wonder Choice has been your trusted partner in the world of
+            technology since 2019. We specialize in buying and selling computer
+            parts, digital assets, and a wide range of electronic devices.
+            Whether you're upgrading your system, trading in old tech, or
+            searching for reliable digital solutions, Wonder Choice is your
+            go-to destination.
           </p>
 
           <p className="text-base sm:text-lg">
-            Founded with the mission of empowering individuals and businesses to
-            take control of their financial future, we offer a secure and
-            user-friendly platform for buying, selling, and sharing stocks.
-            Whether you're a beginner looking to start your investment journey
-            or a seasoned investor seeking better tools, our company provides
-            the resources and support you need.
+            Built on a foundation of quality, transparency, and customer
+            satisfaction, we connect tech enthusiasts, gamers, businesses, and
+            everyday users with the products they need—at the right price.
           </p>
 
           <p className="text-base sm:text-lg">
-            Our team consists of experienced financial analysts, technology
-            experts, and investment advisors who work together to ensure that
-            our clients receive the best possible service and guidance. We
-            believe in building long-term relationships based on trust,
-            innovation, and financial success.
+            With years of industry experience and a growing network, Wonder
+            Choice continues to evolve with the digital age, always putting
+            value and trust at the center of every transaction.
           </p>
 
           <div className="py-2">
@@ -40,16 +38,9 @@ const AboutSection = () => {
               To become the most trusted and innovative global hub for wholesale
               technology and digital lifestyle products, empowering businesses
               with seamless access to quality, value, and digital excellence.
-              Mission At Wonder Choice, our mission is to provide reliable,
-              efficient, and affordable wholesale solutions for computer parts,
-              gift items, digital goods, and digital assets. We strive to build
-              lasting partnerships by delivering exceptional service, fostering
-              innovation, and staying ahead of industry trends—enabling our
-              clients to grow and thrive in a digitally-driven world.
+              Mission.
             </p>
           </div>
-
-  
 
           <div className="py-2">
             <h2 className="text-2xl font-semibold mb-4">Mission</h2>
@@ -67,6 +58,17 @@ const AboutSection = () => {
             <h2 className="text-2xl font-semibold mb-4">
               Director’s Statement
             </h2>
+
+            <div className=" p-5 rounded-lg text-center mb-5 flex flex-col items-center">
+              {/* Profile Image Container */}
+              <div className="mb-3">
+                <img
+                  src={Director}
+                  alt="Profile"
+                  className="w-28 h-28 rounded-full object-cover border-2 border-white shadow-md"
+                />
+              </div>
+            </div>
             <p className="text-base sm:text-lg mb-4">
               Since its humble beginnings in 2019 as a small online retail shop,
               Wonder Choice has grown into a dynamic and forward-thinking
@@ -102,7 +104,7 @@ const AboutSection = () => {
               excellence at every step.
             </p>
 
-            <h6>L.R.Chinthaka Wijesinghe Founder & Director, Wonder Choice</h6>
+            <h6>L.R.Chinthaka Wijesinghe<br/> Founder & Director, <br/>Wonder Choice</h6>
           </div>
         </div>
       </div>

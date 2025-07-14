@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // src/components/OrderSummary.js
 import React from "react";
 import { FiDollarSign, FiClock, FiPackage } from "react-icons/fi";
@@ -6,6 +7,8 @@ const OrderSummary = ({ order }) => {
   const totalPaid = 
     (order.originalFullAmount - order.fullAmount) +
     (order.originalExpectedProfit - order.expectedProfit);
+
+    // const totalProfit = order.originalExpectedProfit - order.expectedProfit;
   
     const totalExpectedFullAmount = order.originalFullAmount + (order.expectedProfit || order.originalExpectedProfit)
   const totalOriginal = 

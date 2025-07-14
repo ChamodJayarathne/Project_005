@@ -8,7 +8,7 @@ export default function AddNewPost() {
   const [formData, setFormData] = useState({
     productName: "",
     fullAmount: "",
-   
+    unitPrice: "",
     expectedProfit: "",
     timeLine: "",
   });
@@ -16,7 +16,7 @@ export default function AddNewPost() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
   const navigate = useNavigate();
-  const baseUrl = import.meta.env.VITE_API_BASE_URI ;
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -66,7 +66,7 @@ export default function AddNewPost() {
       setFormData({
         productName: "",
         fullAmount: "",
-     
+        unitPrice: "",
         expectedProfit: "",
         timeLine: "",
       });
@@ -143,7 +143,25 @@ export default function AddNewPost() {
             />
           </div>
 
-        
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <label
+              htmlFor="unitPrice"
+              className="text-md font-medium text-gray-700"
+            >
+              Unit Price ($)
+            </label>
+            <input
+              type="number"
+              id="unitPrice"
+              name="unitPrice"
+              value={formData.unitPrice}
+              onChange={handleInputChange}
+              className="md:col-span-2 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              min="0"
+              step="0.01"
+            />
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
             <label

@@ -107,6 +107,14 @@ const PostDetails = () => {
                 RS.{post.fullAmount?.toLocaleString()}
               </span>
             </div>
+
+            <div className="flex items-center">
+              <FiDollarSign className="text-gray-500 mr-2" />
+              <span className="font-medium">Unit Price:</span>
+              <span className="ml-2">
+                RS.{post.unitPrice?.toLocaleString()}
+              </span>
+            </div>
      
             <div className="flex items-center">
               <FiTrendingUp className="text-gray-500 mr-2" />
