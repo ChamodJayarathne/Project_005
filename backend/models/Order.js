@@ -26,7 +26,7 @@ const OrderSchema = new mongoose.Schema(
     productName: { type: String, required: true },
     fullAmount: { type: Number, required: true, min: 0 },
     expectedProfit: { type: Number, required: true, min: 0 },
-
+    unitPrice: { type: Number, required: true, min: 0 },
     post: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true },
 
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -41,7 +41,7 @@ const OrderSchema = new mongoose.Schema(
     paymentHistory: [PaymentHistorySchema],
     expiresAt: {
       type: Date,
-      default: () => new Date(Date.now() + 168 * 60 * 60 * 1000),
+      default: () => new Date(Date.now() + 48 * 60 * 60 * 1000),
     },
   },
   {

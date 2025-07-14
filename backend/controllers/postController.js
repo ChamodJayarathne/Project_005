@@ -19,16 +19,19 @@ async function sendPostEmails(emails, post) {
     subject: "New Product Available for Purchase",
     html: `
       <h1>New Product: ${post.productName}</h1>
-      <p>Full Amount: $${post.fullAmount}</p>
-   
-      <p>Expected Profit: $${post.expectedProfit}</p>
+      <p>Full Amount: Rs.${post.fullAmount}</p>
+    <p>Full Amount: Rs.${post.unitPrice}</p>
+      <p>Expected Profit: Rs.$${post.expectedProfit}</p>
       <p>Time Line: ${post.timeLine}</p>
       ${
         post.image
-          ? `<img src="${process.env.BASE_URL}/${post.image}" alt="${post.productName}" width="300">`
+          ? `<img src="${process.env.FRONTEND_BASE_local_URL}/${post.image}" alt="${post.productName}" width="300">`
           : ""
       }
       <p>Login to your account to purchase this item!</p>
+      <a href="${
+        process.env.FRONTEND_BASE_local_URL
+      }/api/auth/login">Go to the Dashboard</a>
     `,
   };
 
@@ -64,11 +67,16 @@ exports.getAvailablePosts = async (req, res) => {
 
     // Filter posts visible to current user
     const visiblePosts = activePosts.filter((post) => {
+      const isCreator =
+        post.createdBy &&
+        post.createdBy._id &&
+        post.createdBy._id.equals(userId);
       return (
         // User is in visibleTo array
         post.visibleTo.includes(userId) ||
         // User created the post (admin)
-        post.createdBy._id.equals(userId)
+        isCreator
+        // post.createdBy._id.equals(userId)
         //  ||
         // User has invested in this post
         // post.investedUsers.includes(userId)
@@ -86,15 +94,15 @@ exports.getAvailablePosts = async (req, res) => {
   }
 };
 
-
 exports.createPost = async (req, res) => {
   try {
-    const { productName, fullAmount, expectedProfit, timeLine } = req.body;
+    const { productName, fullAmount, unitPrice, expectedProfit, timeLine } =
+      req.body;
 
     const newPost = new Post({
       productName,
       fullAmount,
-
+      unitPrice,
       expectedProfit,
       timeLine,
       image: req.file ? req.file.path : null,
@@ -186,7 +194,7 @@ exports.updatePost = async (req, res) => {
     const {
       productName,
       fullAmount,
-
+      unitPrice,
       expectedProfit,
       timeLine,
       status,
@@ -196,7 +204,7 @@ exports.updatePost = async (req, res) => {
     const updateData = {
       productName,
       fullAmount: parseFloat(fullAmount),
-
+      unitPrice: parseFloat(unitPrice),
       expectedProfit: parseFloat(expectedProfit),
       timeLine,
       status,

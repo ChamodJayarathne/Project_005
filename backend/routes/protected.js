@@ -28,7 +28,6 @@ router.get("/admin-data", authenticate, (req, res) => {
   res.json({ message: "Welcome to the admin dashboard!" });
 });
 
-
 router.get("/current-user", authenticate, authController.getCurrentUser);
 
 // Create new post
@@ -55,8 +54,6 @@ router.get("/admin/posts", authenticate(["admin"]), async (req, res) => {
   }
 });
 
-
-
 router.get("/user-data", authenticate, (req, res) => {
   if (req.user.role !== "user") {
     return res.status(403).json({ msg: "Access denied" });
@@ -78,7 +75,6 @@ router.put(
   orderController.updateOrderStatus
 );
 
-
 router.get(
   "/user/orders",
   authenticate(["user"]),
@@ -91,8 +87,6 @@ router.get(
   authenticate(["user"]),
   postController.getActivePosts
 );
-
-
 
 router.get(
   "/posts/available",
@@ -125,7 +119,6 @@ router.put(
   upload.single("image"),
   postController.updatePost
 );
-
 
 router.get(
   "/orders/user/:userId",
@@ -191,5 +184,10 @@ router.get("/admin/users", authenticate(["admin"]), async (req, res) => {
   }
 });
 
+router.get(
+  "/orders/profit/summary",
+  authenticate(["user"]),
+  orderController.getUserProfitSummary
+);
 
 module.exports = router;

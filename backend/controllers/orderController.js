@@ -7,10 +7,10 @@ exports.createOrder = async (req, res) => {
     console.log("Incoming order data:", req.body);
 
     // Destructure all required fields from the request body
-    const { postId, productName, fullAmount, expectedProfit } = req.body;
+    const { postId, productName, unitPrice, fullAmount, expectedProfit,timeLine } = req.body;
 
     // Validate required fields
-    if (!postId || !productName || !fullAmount || !expectedProfit) {
+    if (!postId || !productName || !fullAmount || unitPrice || !expectedProfit || timeLine) {
       return res.status(400).json({
         success: false,
         message:
@@ -27,6 +27,7 @@ exports.createOrder = async (req, res) => {
       post: postId,
       //   postFullAmount: post.fullAmount,
       //   postExpectedProfit: post.expectedProfit,
+      timeLine: timeLine,
       user: req.user.id,
       status: "pending",
       originalFullAmount: fullAmount,
@@ -67,7 +68,6 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-
 exports.approveOrder = async (req, res) => {
   try {
     const order = await Order.findByIdAndUpdate(
@@ -81,7 +81,7 @@ exports.approveOrder = async (req, res) => {
       await Post.findByIdAndUpdate(order.post._id, {
         $set: {
           visibleTo: [
-             order.user, 
+            order.user,
             order.post.createdBy, // Admin (post creator)
           ],
         },
@@ -93,7 +93,6 @@ exports.approveOrder = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
-
 
 exports.getAdminOrders = async (req, res) => {
   try {
@@ -421,5 +420,54 @@ exports.processPayment = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ msg: error.message });
+  }
+};
+
+// Add this to your orderController.js
+exports.getUserProfitSummary = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user.id })
+      .select(
+        "fullAmount expectedProfit originalFullAmount originalExpectedProfit status"
+      )
+      .lean();
+
+    const summary = orders.reduce(
+      (acc, order) => {
+        const paidFull = order.originalFullAmount - order.fullAmount;
+        const paidProfit = order.originalExpectedProfit - order.expectedProfit;
+        const totalPaid = paidProfit;
+
+        acc.totalOrders += 1;
+        acc.totalPaid += totalPaid;
+        acc.totalRemaining += order.expectedProfit;
+
+        if (order.status === "completed") {
+          acc.completedOrders += 1;
+        } else if (order.status === "approved") {
+          acc.activeOrders += 1;
+        }
+
+        return acc;
+      },
+      {
+        totalOrders: 0,
+        completedOrders: 0,
+        activeOrders: 0,
+        totalPaid: 0,
+        totalRemaining: 0,
+      }
+    );
+
+    res.json({
+      success: true,
+      data: summary,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to calculate profit summary",
+      error: error.message,
+    });
   }
 };
