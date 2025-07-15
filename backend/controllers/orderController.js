@@ -7,14 +7,28 @@ exports.createOrder = async (req, res) => {
     console.log("Incoming order data:", req.body);
 
     // Destructure all required fields from the request body
-    const { postId, productName, unitPrice, fullAmount, expectedProfit,timeLine } = req.body;
+    const {
+      postId,
+      productName,
+      unitPrice,
+      fullAmount,
+      expectedProfit,
+      timeLine,
+    } = req.body;
 
     // Validate required fields
-    if (!postId || !productName || !fullAmount || unitPrice || !expectedProfit || timeLine) {
+    if (
+      !postId ||
+      !productName ||
+      !fullAmount ||
+      !unitPrice ||
+      !expectedProfit ||
+      !timeLine
+    ) {
       return res.status(400).json({
         success: false,
         message:
-          "All fields are required: postId, productName, fullAmount, expectedProfit",
+          "All fields are required: postId, productName, unitPrice fullAmount, expectedProfit, timeLine",
       });
     }
 
@@ -23,11 +37,11 @@ exports.createOrder = async (req, res) => {
       productName,
       fullAmount: Number(fullAmount),
       expectedProfit: Number(expectedProfit),
-
+      unitPrice: Number(unitPrice),
       post: postId,
       //   postFullAmount: post.fullAmount,
       //   postExpectedProfit: post.expectedProfit,
-      timeLine: timeLine,
+      timeLine,
       user: req.user.id,
       status: "pending",
       originalFullAmount: fullAmount,
@@ -125,7 +139,7 @@ exports.getUserOrders = async (req, res) => {
     const orders = await Order.find({ user: req.user.id })
       .sort({ createdAt: -1 })
       .select(
-        "productName fullAmount expectedProfit unitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit"
+        "productName fullAmount expectedProfit unitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
       );
 
     res.json(orders);

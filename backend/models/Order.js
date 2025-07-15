@@ -35,6 +35,7 @@ const OrderSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected", "completed"],
       default: "pending",
     },
+    timeLine: { type: String, required: true },
     adminNotes: String,
     originalFullAmount: { type: Number, required: true, min: 0 },
     originalExpectedProfit: { type: Number, required: true, min: 0 },
