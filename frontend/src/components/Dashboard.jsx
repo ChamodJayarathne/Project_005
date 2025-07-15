@@ -130,6 +130,7 @@ function Dashboard({ user, onLogout }) {
           fullAmount: post.fullAmount,
           expectedProfit: post.expectedProfit,
           unitPrice: post.unitPrice,
+          timeLine: post.timeLine,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
