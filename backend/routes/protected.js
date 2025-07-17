@@ -90,7 +90,7 @@ router.get(
 
 router.get(
   "/posts/available",
-  authenticate(["user"]),
+  authenticate(["user", "admin"]),
   postController.getAvailablePosts
 );
 
@@ -126,23 +126,23 @@ router.get(
   orderController.getOrdersByUser
 );
 
-router.put("/orders/:id", authenticate(["admin"]), orderController.updateOrder);
-
 router.get("/orders/:id", authenticate(["admin"]), orderController.getOrder);
 
-router.put("/orders/:id", authenticate(["admin"]), orderController.updateOrder);
+// router.put("/orders/:id", authenticate(["admin"]), orderController.updateOrder);
 
-router.put(
-  "/orders/:id/status",
-  authenticate(["admin"]),
-  orderController.updateOrderStatus
-);
+// router.put(
+//   "/orders/:id/status",
+//   authenticate(["admin"]),
+//   orderController.updateOrderStatus
+// );
 
 router.put(
   "/orders/:id/payment",
   authenticate(["admin"]),
   orderController.processPayment
 );
+
+router.put("/orders/:id", authenticate(["admin"]), orderController.updateOrder);
 
 router.get("/profile", authenticate, async (req, res) => {
   try {

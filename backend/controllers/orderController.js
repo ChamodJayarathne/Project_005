@@ -122,21 +122,67 @@ exports.getAdminOrders = async (req, res) => {
 // Update order status
 exports.updateOrderStatus = async (req, res) => {
   try {
+    // Verify the requesting user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ msg: "Admin privileges required" });
+    }
+
     const { status } = req.body;
     const order = await Order.findByIdAndUpdate(
       req.params.id,
-      { status },
+      { status, updatedAt: Date.now() },
       { new: true }
     );
-    res.json(order);
+
+    if (!order) {
+      return res.status(404).json({ msg: "Order not found" });
+    }
+
+    res.json({
+      success: true,
+      order: updatedOrder,
+    });
   } catch (error) {
+    console.error("Error updating order status:", error);
     res.status(500).json({ msg: error.message });
   }
 };
+// exports.updateOrderStatus = async (req, res) => {
+//   try {
+//     const { status } = req.body;
+//     const order = await Order.findByIdAndUpdate(
+//       req.params.id,
+//       { status },
+//       { new: true }
+//     );
+//     res.json(order);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
 
 exports.getUserOrders = async (req, res) => {
+  // try {
+  //   const orders = await Order.find({ user: req.user.id })
+  //     .sort({ createdAt: -1 })
+  //     .select(
+  //       "productName fullAmount expectedProfit unitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
+  //     );
+
+  //   res.json(orders);
+  // } catch (error) {
+  //   res.status(500).json({ msg: error.message });
+  // }
+
   try {
-    const orders = await Order.find({ user: req.user.id })
+    const { status } = req.query;
+    let query = { user: req.user.id };
+
+    if (status) {
+      query.status = status;
+    }
+
+    const orders = await Order.find(query)
       .sort({ createdAt: -1 })
       .select(
         "productName fullAmount expectedProfit unitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
@@ -438,9 +484,60 @@ exports.processPayment = async (req, res) => {
 };
 
 // Add this to your orderController.js
+// exports.getUserProfitSummary = async (req, res) => {
+//   try {
+//     const orders = await Order.find({ user: req.user.id })
+//       .select(
+//         "fullAmount expectedProfit originalFullAmount originalExpectedProfit status"
+//       )
+//       .lean();
+
+//     const summary = orders.reduce(
+//       (acc, order) => {
+//         const paidFull = order.originalFullAmount - order.fullAmount;
+//         const paidProfit = order.originalExpectedProfit - order.expectedProfit;
+//         const totalPaid = paidProfit;
+
+//         acc.totalOrders += 1;
+//         acc.totalPaid += totalPaid;
+//         acc.totalRemaining += order.expectedProfit;
+
+//         if (order.status === "completed") {
+//           acc.completedOrders += 1;
+//         } else if (order.status === "approved") {
+//           acc.activeOrders += 1;
+//         }
+
+//         return acc;
+//       },
+//       {
+//         totalOrders: 0,
+//         completedOrders: 0,
+//         activeOrders: 0,
+//         totalPaid: 0,
+//         totalRemaining: 0,
+//       }
+//     );
+
+//     res.json({
+//       success: true,
+//       data: summary,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to calculate profit summary",
+//       error: error.message,
+//     });
+//   }
+// };
+
 exports.getUserProfitSummary = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user.id })
+    const orders = await Order.find({
+      user: req.user.id,
+      status: "approved", // Only include approved orders
+    })
       .select(
         "fullAmount expectedProfit originalFullAmount originalExpectedProfit status"
       )
@@ -448,17 +545,15 @@ exports.getUserProfitSummary = async (req, res) => {
 
     const summary = orders.reduce(
       (acc, order) => {
-        const paidFull = order.originalFullAmount - order.fullAmount;
         const paidProfit = order.originalExpectedProfit - order.expectedProfit;
-        const totalPaid = paidProfit;
 
         acc.totalOrders += 1;
-        acc.totalPaid += totalPaid;
+        acc.totalPaid += paidProfit;
         acc.totalRemaining += order.expectedProfit;
 
         if (order.status === "completed") {
           acc.completedOrders += 1;
-        } else if (order.status === "approved") {
+        } else {
           acc.activeOrders += 1;
         }
 
