@@ -7,11 +7,11 @@ import axios from "axios";
 
 function AdminOrders() {
   const [orders, setOrders] = useState([]);
-  const [posts,setPosts] = useState([])
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState({});
-  const baseUrl = import.meta.env.VITE_API_BASE_URI ;
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -102,33 +102,51 @@ function AdminOrders() {
       //     },
       //   }
       // );
-          const token = localStorage.getItem("token");
-    const response = await axios.put(
-      `${baseUrl}/api/protected/orders/${orderId}/status`,
-      { status },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+      //       const token = localStorage.getItem("token");
+      // const response = await axios.put(
+      //   `${baseUrl}/api/protected/orders/${orderId}/status`,
+      //   { status },
+      //   {
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //   }
+      // );
 
-    // Refresh data after approval
-    if (status === "approved") {
-      const ordersResponse = await axios.get(
-        `${baseUrl}/api/protected/admin/orders`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const token = localStorage.getItem("token");
+      console.log("Current token:", token); // Debug token
+
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await axios.put(
+        `${baseUrl}/api/protected/orders/${orderId}/status`,
+        { status },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      setOrders(ordersResponse.data);
-      
-      // Refresh posts data
-      const postsResponse = await axios.get(
-        `${baseUrl}/api/protected/posts/available`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setPosts(postsResponse.data);
-    }
+
+      // Refresh data after approval
+      if (status === "approved") {
+        const ordersResponse = await axios.get(
+          `${baseUrl}/api/protected/admin/orders`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setOrders(ordersResponse.data);
+
+        // Refresh posts data
+        const postsResponse = await axios.get(
+          `${baseUrl}/api/protected/posts/available`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setPosts(postsResponse.data);
+      }
 
       if (response.status !== 200) throw new Error("Failed to update status");
 
@@ -296,7 +314,7 @@ function AdminOrders() {
           Generate PDF Report
         </button>
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-200">
           <thead className="bg-gray-100">

@@ -3,20 +3,17 @@ import React, { useEffect, useState } from "react";
 function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-     const baseUrl = import.meta.env.VITE_API_BASE_URI ;
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(
-          `${baseUrl}/api/protected/user/orders`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await fetch(`${baseUrl}/api/protected/user/orders`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         const data = await response.json();
         setOrders(data);
@@ -41,6 +38,7 @@ function MyOrders() {
             <tr>
               <th className="py-2 px-4 border">Product</th>
               <th className="py-2 px-4 border">Amount</th>
+              <th className="py-2 px-4 border">Unit Price</th>
               <th className="py-2 px-4 border">Expected Profit</th>
               <th className="py-2 px-4 border">Status</th>
             </tr>
@@ -49,8 +47,13 @@ function MyOrders() {
             {orders.map((order) => (
               <tr key={order._id}>
                 <td className="py-2 px-4 border">{order.productName}</td>
-                <td className="py-2 px-4 border">RS.{order.fullAmount}</td>
-                <td className="py-2 px-4 border">RS.{order.expectedProfit}</td>
+                <td className="py-2 px-4 border">
+                  RS.{order.originalFullAmount}
+                </td>
+                <td className="py-2 px-4 border">RS.{order.unitPrice}</td>
+                <td className="py-2 px-4 border">
+                  RS.{order.originalExpectedProfit}
+                </td>
                 <td
                   className={`py-2 px-4 border ${
                     order.status === "approved"
@@ -72,4 +75,3 @@ function MyOrders() {
 }
 
 export default MyOrders;
-

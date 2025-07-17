@@ -101,8 +101,13 @@ function Dashboard({ user, onLogout }) {
         setPosts(filteredPosts);
 
         // Fetch user orders
+        // const ordersResponse = await axios.get(
+        //   `${baseUrl}/api/protected/user/orders`,
+        //   { headers: { Authorization: `Bearer ${token}` } }
+        // );
+        // setUserOrders(ordersResponse.data);
         const ordersResponse = await axios.get(
-          `${baseUrl}/api/protected/user/orders`,
+          `${baseUrl}/api/protected/user/orders?status=approved`, // Add status filter
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setUserOrders(ordersResponse.data);
@@ -477,13 +482,30 @@ function Dashboard({ user, onLogout }) {
         ) : (
           <div className="bg-blue-50 p-6 rounded-lg text-center">
             <p className="text-gray-600">
+              You don't have any approved investments yet
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Your pending investments will appear here once approved
+            </p>
+          </div>
+        )}
+        {/* 
+        {userOrders.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {userOrders.map((order) => (
+              <OrderSummary key={order._id} order={order} />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-blue-50 p-6 rounded-lg text-center">
+            <p className="text-gray-600">
               You haven't made any investments yet
             </p>
             <p className="text-sm text-gray-500 mt-2">
               Invest in trending orders to see your summary here
             </p>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
