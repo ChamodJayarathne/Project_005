@@ -16,11 +16,7 @@ app.use(cors());
 
 app.use(
   cors({
-    // origin: "http://localhost:5173/",
-    // // origin: "https://www.wonder-choice.com/",
-    // methods: ["GET", "POST", "PUT", "DELETE"],
-    // allowedHeaders: ["Content-Type", "Authorization"],
-    // credentials: true,
+
     origin: process.env.FRONTEND_BASE_URL,
     // origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE"],

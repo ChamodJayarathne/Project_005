@@ -56,11 +56,17 @@ exports.createOrder = async (req, res) => {
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
       {
-        $addToSet: { investedUsers: req.user.id },
-        $pull: { visibleTo: req.user.id },
+        $addToSet: {
+          investedUsers: req.user.id,
+          // Remove user from visibleTo if they shouldn't see it anymore
+          // Or keep them if they should still see invested posts
+        },
+        $pull: { visibleTo: req.user.id }, // Remove user from visibleTo
       },
-      { new: true } // Return the updated document
+      { new: true }
     );
+
+
 
     if (!updatedPost) {
       throw new Error("Associated post not found");
@@ -90,6 +96,10 @@ exports.approveOrder = async (req, res) => {
       { new: true }
     ).populate("post");
 
+    if (!order) {
+      return res.status(404).json({ msg: "Order not found" });
+    }
+
     // Update post visibility - remove all users except investor and admin
     if (order?.post) {
       await Post.findByIdAndUpdate(order.post._id, {
@@ -99,6 +109,9 @@ exports.approveOrder = async (req, res) => {
             order.post.createdBy, // Admin (post creator)
           ],
         },
+        // $addToSet: {
+        //   investedUsers: order.user, // Add user to investedUsers
+        // }
       });
     }
 
@@ -147,32 +160,9 @@ exports.updateOrderStatus = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
-// exports.updateOrderStatus = async (req, res) => {
-//   try {
-//     const { status } = req.body;
-//     const order = await Order.findByIdAndUpdate(
-//       req.params.id,
-//       { status },
-//       { new: true }
-//     );
-//     res.json(order);
-//   } catch (error) {
-//     res.status(500).json({ msg: error.message });
-//   }
-// };
+
 
 exports.getUserOrders = async (req, res) => {
-  // try {
-  //   const orders = await Order.find({ user: req.user.id })
-  //     .sort({ createdAt: -1 })
-  //     .select(
-  //       "productName fullAmount expectedProfit unitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
-  //     );
-
-  //   res.json(orders);
-  // } catch (error) {
-  //   res.status(500).json({ msg: error.message });
-  // }
 
   try {
     const { status } = req.query;
@@ -483,80 +473,48 @@ exports.processPayment = async (req, res) => {
   }
 };
 
-// Add this to your orderController.js
-// exports.getUserProfitSummary = async (req, res) => {
-//   try {
-//     const orders = await Order.find({ user: req.user.id })
-//       .select(
-//         "fullAmount expectedProfit originalFullAmount originalExpectedProfit status"
-//       )
-//       .lean();
-
-//     const summary = orders.reduce(
-//       (acc, order) => {
-//         const paidFull = order.originalFullAmount - order.fullAmount;
-//         const paidProfit = order.originalExpectedProfit - order.expectedProfit;
-//         const totalPaid = paidProfit;
-
-//         acc.totalOrders += 1;
-//         acc.totalPaid += totalPaid;
-//         acc.totalRemaining += order.expectedProfit;
-
-//         if (order.status === "completed") {
-//           acc.completedOrders += 1;
-//         } else if (order.status === "approved") {
-//           acc.activeOrders += 1;
-//         }
-
-//         return acc;
-//       },
-//       {
-//         totalOrders: 0,
-//         completedOrders: 0,
-//         activeOrders: 0,
-//         totalPaid: 0,
-//         totalRemaining: 0,
-//       }
-//     );
-
-//     res.json({
-//       success: true,
-//       data: summary,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to calculate profit summary",
-//       error: error.message,
-//     });
-//   }
-// };
 
 exports.getUserProfitSummary = async (req, res) => {
   try {
+    // Get both approved and completed orders
     const orders = await Order.find({
       user: req.user.id,
-      status: "approved", // Only include approved orders
+      status: { $in: ["approved", "completed"] }, // Include both approved and completed orders
     })
       .select(
-        "fullAmount expectedProfit originalFullAmount originalExpectedProfit status"
+        "fullAmount expectedProfit originalFullAmount originalExpectedProfit status paymentHistory"
       )
       .lean();
 
     const summary = orders.reduce(
       (acc, order) => {
-        const paidProfit = order.originalExpectedProfit - order.expectedProfit;
-
-        acc.totalOrders += 1;
-        acc.totalPaid += paidProfit;
-        acc.totalRemaining += order.expectedProfit;
-
         if (order.status === "completed") {
+          // For completed orders, add the full original expected profit
+          acc.totalPaid += order.originalExpectedProfit;
           acc.completedOrders += 1;
-        } else {
+        } else if (order.status === "approved") {
+          // For approved orders, calculate how much has been paid so far
+          const paidProfit =
+            order.originalExpectedProfit - order.expectedProfit;
+          acc.totalPaid += paidProfit;
+          acc.totalRemaining += order.expectedProfit;
           acc.activeOrders += 1;
         }
 
+        // Calculate payment history total if available
+        if (order.paymentHistory && order.paymentHistory.length > 0) {
+          const profitPayments = order.paymentHistory.filter(
+            (payment) => payment.type === "expectedProfit"
+          );
+          const paidFromHistory = profitPayments.reduce(
+            (sum, payment) => sum + payment.amount,
+            0
+          );
+          acc.totalPaidFromHistory =
+            (acc.totalPaidFromHistory || 0) + paidFromHistory;
+        }
+
+        acc.totalOrders += 1;
         return acc;
       },
       {
@@ -565,12 +523,22 @@ exports.getUserProfitSummary = async (req, res) => {
         activeOrders: 0,
         totalPaid: 0,
         totalRemaining: 0,
+        totalPaidFromHistory: 0, // Optional: track payments from history
       }
     );
 
+    // If you want to prioritize payment history data over calculated difference
+    // summary.totalPaid = summary.totalPaidFromHistory || summary.totalPaid;
+
     res.json({
       success: true,
-      data: summary,
+      data: {
+        totalPaid: summary.totalPaid,
+        totalRemaining: summary.totalRemaining,
+        totalOrders: summary.totalOrders,
+        completedOrders: summary.completedOrders,
+        activeOrders: summary.activeOrders,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -580,3 +548,23 @@ exports.getUserProfitSummary = async (req, res) => {
     });
   }
 };
+
+exports.deleteOrder = async (req, res) => {
+  try {
+    // Verify the requesting user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ msg: "Admin privileges required" });
+    }
+
+    const order = await Order.findByIdAndDelete(req.params.id);
+    
+    if (!order) {
+      return res.status(404).json({ msg: "Order not found" });
+    }
+
+    res.json({ success: true, message: "Order deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+

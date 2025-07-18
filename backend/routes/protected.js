@@ -9,6 +9,8 @@ const path = require("path");
 const Post = require("../models/Post");
 const User = require("../models/User");
 
+const upload = require("../middleware/multer");
+
 // Configure file upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -19,7 +21,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+// const upload = multer({ storage });
 
 router.get("/admin-data", authenticate, (req, res) => {
   if (req.user.role !== "admin") {
@@ -100,6 +102,12 @@ router.post(
   orderController.approveOrder
 );
 
+router.delete(
+  "/orders/:id",
+  authenticate(["admin"]),
+  orderController.deleteOrder
+);
+
 router.get(
   "/posts/user/:userId",
   authenticate(["admin"]),
@@ -128,13 +136,7 @@ router.get(
 
 router.get("/orders/:id", authenticate(["admin"]), orderController.getOrder);
 
-// router.put("/orders/:id", authenticate(["admin"]), orderController.updateOrder);
 
-// router.put(
-//   "/orders/:id/status",
-//   authenticate(["admin"]),
-//   orderController.updateOrderStatus
-// );
 
 router.put(
   "/orders/:id/payment",

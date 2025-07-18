@@ -2,6 +2,7 @@ const Order = require("../models/Order");
 const Post = require("../models/Post");
 const User = require("../models/User");
 const nodemailer = require("nodemailer");
+const cloudinary = require("../config/cloudinary");
 
 // Email sending function
 async function sendPostEmails(emails, post) {
@@ -55,42 +56,26 @@ exports.getAdminData = (req, res) => {
   res.json({ message: "Welcome to the admin dashboard!" });
 };
 
+
+// In your getAvailablePosts controller - FIXED VERSION
 exports.getAvailablePosts = async (req, res) => {
   try {
+    // const userId = req.user.id.toString(); // Ensure string format
     const userId = req.user.id;
 
-    // Get all active posts not expired
-    const activePosts = await Post.find({
+    const posts = await Post.find({
       status: "active",
       expiresAt: { $gt: new Date() },
+      investedUsers: { $ne: userId }, // Exclude posts user already invested in
+      visibleTo: userId, // Only show posts where user is in visibleTo
     }).populate("createdBy", "username");
 
-    // Filter posts visible to current user
-    const visiblePosts = activePosts.filter((post) => {
-      const isCreator =
-        post.createdBy &&
-        post.createdBy._id &&
-        post.createdBy._id.equals(userId);
-      return (
-        // User is in visibleTo array
-        post.visibleTo.includes(userId) ||
-        // User created the post (admin)
-        isCreator
-        // post.createdBy._id.equals(userId)
-        //  ||
-        // User has invested in this post
-        // post.investedUsers.includes(userId)
-      );
-    });
-
-    res.json(visiblePosts);
+   
+    // res.json(visiblePosts);
+    res.json(posts);
   } catch (error) {
-    console.error("Error in getAvailablePosts:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message,
-    });
+    console.error("Error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -99,40 +84,65 @@ exports.createPost = async (req, res) => {
     const { productName, fullAmount, unitPrice, expectedProfit, timeLine } =
       req.body;
 
+    let imageUrl = null;
+
+    if (req.file) {
+      try {
+        const dataUri = `data:${
+          req.file.mimetype
+        };base64,${req.file.buffer.toString("base64")}`;
+        const result = await cloudinary.uploader.upload(dataUri, {
+          folder: "post_images",
+          transformation: { width: 800, height: 600, crop: "limit" },
+        });
+        imageUrl = result.secure_url;
+      } catch (uploadError) {
+        console.error("Cloudinary upload error:", uploadError);
+        return res.status(500).json({
+          msg: "Failed to upload image to Cloudinary",
+          error: uploadError.message,
+        });
+      }
+    }
+
+    // Get ALL users except the current admin
+    const users = await User.find({
+      _id: { $ne: req.user.id }, // Exclude current admin
+      role: "user", // Only regular users
+    });
+
     const newPost = new Post({
       productName,
       fullAmount,
       unitPrice,
       expectedProfit,
       timeLine,
-      image: req.file ? req.file.path : null,
+      image: imageUrl,
       createdBy: req.user.id,
-      visibleTo: [],
-      sharedWith: [],
+      visibleTo: users.map((user) => user._id), // Visible to all regular users
+      sharedWith: users.map((user) => user._id), // Shared with all regular users
+      // visibleTo: [],
+      // sharedWith: [],
+      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours from now
     });
-
-    // Get users to share with (excluding admin)
-    const users = await User.aggregate([
-      {
-        $match: { _id: { $ne: req.user.id }, role: "user" },
-      },
-    ]).limit(8);
-
-    // Update both sharedWith and visibleTo arrays
-    newPost.sharedWith = users.map((user) => user._id);
-    newPost.visibleTo = users.map((user) => user._id);
 
     await newPost.save();
 
-    // Send emails
+    // Send emails to all users
     const userEmails = users.map((user) => user.email);
     await sendPostEmails(userEmails, newPost);
 
     res.status(201).json(newPost);
   } catch (error) {
-    res.status(500).json({ msg: error.message });
+    console.error("Error in createPost:", error);
+    res.status(500).json({
+      msg: error.message,
+      error: error.stack,
+    });
   }
 };
+
+
 
 // Get all posts
 exports.getAllPosts = async (req, res) => {
