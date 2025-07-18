@@ -543,10 +543,20 @@ export default function UserDetail() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             {post.image && (
+                              // <img
+                              //   src={`${baseUrl}/${post.image}`}
+                              //   alt={post.productName}
+                              //   className="w-10 h-10 object-cover rounded mr-3"
+                              // />
                               <img
-                                src={`${baseUrl}/${post.image}`}
+                                src={post?.image} // Direct Cloudinary URL
                                 alt={post.productName}
                                 className="w-10 h-10 object-cover rounded mr-3"
+                                // className="w-full md:w-80 h-full object-cover"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  // e.target.src = '/default-post.jpg'; // Fallback image
+                                }}
                               />
                             )}
                             <div>
@@ -690,10 +700,10 @@ export default function UserDetail() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          RS.{order.fullAmount?.toLocaleString()}
+                          RS.{order.originalFullAmount?.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          RS.{order.expectedProfit?.toLocaleString()}
+                          RS.{order.originalExpectedProfit?.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
@@ -740,6 +750,56 @@ export default function UserDetail() {
                               </>
                             )}
 
+                            {order.status === "rejected" && (
+                              <button
+                                onClick={() =>
+                                  handleOrderStatusChange(order._id, "approved")
+                                }
+                                className="text-green-600 hover:text-green-900"
+                              >
+                                Approve
+                              </button>
+                            )}
+
+                            {order.status === "approved" && (
+                              <Link
+                                to={`/admin/orders/${order._id}`}
+                                className="text-blue-600 hover:text-blue-900"
+                              >
+                                View Details
+                              </Link>
+                            )}
+                          </div>
+                        </td>
+                        {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
+                            {order.status === "pending" && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleOrderStatusChange(
+                                      order._id,
+                                      "approved"
+                                    )
+                                  }
+                                  className="text-green-600 hover:text-green-900"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleOrderStatusChange(
+                                      order._id,
+                                      "rejected"
+                                    )
+                                  }
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+
                             <Link
                               to={`/admin/orders/${order._id}`}
                               className="text-blue-600 hover:text-blue-900"
@@ -747,7 +807,7 @@ export default function UserDetail() {
                               View Details
                             </Link>
                           </div>
-                        </td>
+                        </td> */}
                       </tr>
                     ))}
                   </tbody>

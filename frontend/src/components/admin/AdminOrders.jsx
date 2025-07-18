@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import axios from "axios";
+import { FiTrash2 } from "react-icons/fi";
 
 function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -169,6 +170,31 @@ function AdminOrders() {
       alert(`Failed to update order: ${error.message}`);
     }
   };
+
+
+  const handleDeleteOrder = async (orderId) => {
+  if (!window.confirm("Are you sure you want to delete this order?")) return;
+
+  try {
+    const token = localStorage.getItem("token");
+    await axios.delete(`${baseUrl}/api/protected/orders/${orderId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // Update local state by removing the deleted order
+    setOrders(orders.filter(order => order._id !== orderId));
+    
+    // Also remove from timeRemaining if it exists
+    const newTimeRemaining = { ...timeRemaining };
+    delete newTimeRemaining[orderId];
+    setTimeRemaining(newTimeRemaining);
+
+    alert("Order deleted successfully");
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    alert(error.response?.data?.msg || "Failed to delete order");
+  }
+};
 
   const formatTime = (time) => {
     return `${String(time.hours).padStart(2, "0")}:${String(
@@ -337,10 +363,10 @@ function AdminOrders() {
                   {order.user?.username || "N/A"}
                 </td>
                 <td className="py-2 px-4 border">
-                  RS.{order.fullAmount?.toLocaleString()}
+                  RS.{order.originalFullAmount?.toLocaleString()}
                 </td>
                 <td className="py-2 px-4 border">
-                  RS.{order.expectedProfit?.toLocaleString()}
+                  RS.{order.originalExpectedProfit?.toLocaleString()}
                 </td>
                 <td className="py-2 px-4 border">
                   {order.status === "pending" && timeRemaining[order._id] ? (
@@ -396,6 +422,14 @@ function AdminOrders() {
                         View
                       </button>
                     )}
+                    <button
+                      onClick={() => handleDeleteOrder(order._id)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm flex items-center"
+                      title="Delete Order"
+                    >
+                      <FiTrash2 className="mr-1" />
+                      Delete
+                    </button>
                     <button
                       onClick={() => generateSingleOrderPDF(order)}
                       className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm flex items-center"

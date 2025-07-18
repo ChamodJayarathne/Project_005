@@ -75,6 +75,13 @@ function LoginPage({ setUser }) {
       </div>
 
       <div className="w-full max-w-5xl flex flex-col md:flex-row items-center">
+
+             <div className="mt-8 md:mt-0 mb-5 lg:hidden md:ml-10 text-white text-center md:text-left">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+            <div>LOGIN NOW</div>
+            {/* <div></div> */}
+          </h1>
+        </div>
         {/* Registration form */}
         <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
           <h2 className="text-2xl font-medium text-gray-700 mb-6 border-b pb-2">
@@ -133,7 +140,7 @@ function LoginPage({ setUser }) {
         </div>
 
         {/* Register now text */}
-        <div className="mt-8 md:mt-0 md:ml-10 text-white text-center md:text-left">
+        <div className="mt-8 md:mt-0 md:ml-10 md:block hidden text-white text-center md:text-left">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
             <div>LOGIN NOW</div>
             {/* <div></div> */}

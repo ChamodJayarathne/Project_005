@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import OrderSummary from "../components/OrderSummary";
@@ -87,18 +88,27 @@ function Dashboard({ user, onLogout }) {
         // Fetch available posts
         const postsResponse = await axios.get(
           `${baseUrl}/api/protected/posts/available`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { _: Date.now() },
+          }
         );
 
         // Filter out expired posts and posts not visible to current user
-        const now = new Date();
-        const filteredPosts = postsResponse.data.filter((post) => {
-          const postTime = new Date(post.createdAt);
-          const isExpired = now - postTime > 48 * 60 * 60 * 1000;
-          return !isExpired;
-        });
+        // const now = new Date();
+        // const filteredPosts = postsResponse.data.filter((post) => {
+        //   const postTime = new Date(post.createdAt);
+        //   const isExpired = now - postTime > 48 * 60 * 60 * 1000;
+        //   return !isExpired;
+        // });
+        //         const filteredPosts = postsResponse.data.filter((post) => {
+        //   const postTime = new Date(post.createdAt);
+        //   const isExpired = now - postTime > 48 * 60 * 60 * 1000;
+        //   return !isExpired;
+        // });
 
-        setPosts(filteredPosts);
+        // setPosts(filteredPosts);
+        setPosts(postsResponse.data);
 
         // Fetch user orders
         // const ordersResponse = await axios.get(
@@ -140,9 +150,11 @@ function Dashboard({ user, onLogout }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      setPosts(posts.filter(p => p._id !== post._id));
       // Update UI and trigger refresh
-      setPosts(posts.filter((p) => p._id !== post._id));
-      setRefreshCounter((prev) => prev + 1); // Trigger refresh
+      // setPosts(posts.filter((p) => p._id !== post._id));
+      //  setRefreshCounter((prev) => prev + 1);
+      // setRefreshCounter((prev) => prev + 1); // Trigger refresh
       alert("Investment successful!");
     } catch (error) {
       console.error("Investment error:", error);
@@ -370,11 +382,20 @@ function Dashboard({ user, onLogout }) {
         <div className="mb-3">
           {userData?.profileImage ? (
             <img
-              src={`${baseUrl}/${userData.profileImage.replace(/\\/g, "/")}`}
+              src={userData.profileImage} // Direct Cloudinary URL
               alt="Profile"
               className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+              onError={(e) => {
+                e.target.onerror = null;
+                // e.target.src = '/default-profile.png';
+              }}
             />
           ) : (
+            // <img
+            //   src={`${baseUrl}/${userData.profileImage.replace(/\\/g, "/")}`}
+            //   alt="Profile"
+            //   className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+            // />
             <div className="bg-gray-200 border-2 border-dashed rounded-full w-16 h-16 flex items-center justify-center">
               <span className="text-gray-500 text-xs">No Image</span>
             </div>
@@ -560,13 +581,22 @@ const PostItem = ({ order, onInvest }) => {
   return (
     <div className="bg-white p-4 rounded-lg shadow-md flex flex-col md:flex-row items-center gap-4">
       {order.image ? (
+        // <img
+        //   src={`${baseUrl}/${order.image.replace(/\\/g, "/")}`}
+        //   className="md:h-48 md:w-64 w-full object-cover rounded-lg"
+        //   alt={order.productName}
+        //   onError={(e) => {
+        //     e.target.onerror = null;
+        //     e.target.src = item1;
+        //   }}
+        // />
         <img
-          src={`${baseUrl}/${order.image.replace(/\\/g, "/")}`}
+          src={order.image} // Direct Cloudinary URL
           className="md:h-48 md:w-64 w-full object-cover rounded-lg"
           alt={order.productName}
           onError={(e) => {
             e.target.onerror = null;
-            e.target.src = item1;
+            e.target.src = item1; // Your fallback image import
           }}
         />
       ) : (

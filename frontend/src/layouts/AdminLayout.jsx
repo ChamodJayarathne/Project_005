@@ -100,14 +100,23 @@ export default function AdminLayout({ onLogout }) {
             <div className="mb-3">
               {userData?.profileImage ? (
                 <img
-                  src={`${baseUrl}/${userData.profileImage.replace(
-                    /\\/g,
-                    "/"
-                  )}`}
+                  src={userData.profileImage} // Direct Cloudinary URL
                   alt="Profile"
                   className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    // e.target.src = '/default-profile.png';
+                  }}
                 />
               ) : (
+                // <img
+                //   src={`${baseUrl}/${userData.profileImage.replace(
+                //     /\\/g,
+                //     "/"
+                //   )}`}
+                //   alt="Profile"
+                //   className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+                // />
                 <div className="bg-gray-200 border-2 border-dashed rounded-full w-16 h-16 flex items-center justify-center">
                   <span className="text-gray-500 text-xs">No Image</span>
                 </div>

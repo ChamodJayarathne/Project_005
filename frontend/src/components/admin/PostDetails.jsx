@@ -17,7 +17,7 @@ const PostDetails = () => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const baseUrl = import.meta.env.VITE_API_BASE_URI ;
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -36,7 +36,6 @@ const PostDetails = () => {
         setLoading(false);
       }
     };
-
 
     fetchPost();
   }, [postId]);
@@ -74,10 +73,19 @@ const PostDetails = () => {
         {post.image && (
           <div className="h-80 flex justify-center overflow-hidden">
             <img
+              src={post?.image} // Direct Cloudinary URL
+              alt={post.productName}
+              className="w-full md:w-80 h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                // e.target.src = '/default-post.jpg'; // Fallback image
+              }}
+            />
+            {/* <img
               src={`${baseUrl}/${post.image}`}
               alt={post.productName}
               className="w-full md:w-80 h-full object-cover"
-            />
+            /> */}
           </div>
         )}
 
@@ -115,7 +123,7 @@ const PostDetails = () => {
                 RS.{post.unitPrice?.toLocaleString()}
               </span>
             </div>
-     
+
             <div className="flex items-center">
               <FiTrendingUp className="text-gray-500 mr-2" />
               <span className="font-medium">Expected Profit:</span>

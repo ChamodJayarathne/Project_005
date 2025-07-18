@@ -33,9 +33,14 @@ const EditPost = () => {
         );
         setPost(response.data);
 
-        if (response.data.image) {
-          setPreview(`${baseUrl}/${response.data.image}`);
-        }
+        // if (response.data.image) {
+        //   setPreview(`${baseUrl}/${response.data.image}`);
+        // }
+         if (response.data.image) {
+        // Check if the image URL is already complete (contains http:// or https://)
+        const isFullUrl = response.data.image.startsWith('http');
+        setPreview(isFullUrl ? response.data.image : `${baseUrl}/${response.data.image}`);
+      }
         setLoading(false);
       } catch (err) {
         setError(err.response?.data?.msg || "Failed to fetch post");

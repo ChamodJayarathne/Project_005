@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React from "react";
 import {
   Page,
@@ -104,7 +105,8 @@ const UserPdfDocument = ({ users, baseUrl }) => (
             <View style={styles.tableCol}>
               {user.profileImage ? (
                 <Image
-                  src={`${baseUrl}/${user.profileImage.replace(/\\/g, "/")}`}
+                  // src={`${baseUrl}/${user.profileImage.replace(/\\/g, "/")}`}
+                   src={user?.profileImage} 
                   style={styles.avatar}
                 />
               ) : (

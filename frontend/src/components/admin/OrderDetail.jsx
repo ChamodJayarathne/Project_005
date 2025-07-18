@@ -98,7 +98,8 @@ export default function OrderDetail() {
         setOrder(response.data.order);
         setFormData({ payNow: "", adminNotes: "" });
         setIsEditing(false);
-        alert(`Payment processed successfully!\n\n${response.data.message}`);
+        alert(`${response.data.message}`);
+        // Payment processed successfully!\n
       } else {
         const { msg, paymentDetails, remaining } = response.data;
         const confirmation = window.confirm(

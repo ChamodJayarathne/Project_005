@@ -2,7 +2,14 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FiUser, FiMail, FiShield, FiTrash2, FiEdit, FiDownload } from "react-icons/fi";
+import {
+  FiUser,
+  FiMail,
+  FiShield,
+  FiTrash2,
+  FiEdit,
+  FiDownload,
+} from "react-icons/fi";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import UserPdfDocument from "../UserPdfDocument";
 
@@ -88,13 +95,22 @@ export default function Accounts() {
               <div className="flex items-center mb-6">
                 <div className=" p-3 rounded-full mr-4">
                   {user?.profileImage ? (
+                    // <img
+                    //   src={`${baseUrl}/${user.profileImage.replace(
+                    //     /\\/g,
+                    //     "/"
+                    //   )}`}
+                    //   alt="Profile"
+                    //   className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+                    // />
                     <img
-                      src={`${baseUrl}/${user.profileImage.replace(
-                        /\\/g,
-                        "/"
-                      )}`}
+                      src={user.profileImage} // Direct Cloudinary URL
                       alt="Profile"
                       className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        // e.target.src = "/default-profile.png"; // Fallback image
+                      }}
                     />
                   ) : (
                     // <div className="bg-gray-200 border-2 border-dashed rounded-full w-16 h-16 flex items-center justify-center">
