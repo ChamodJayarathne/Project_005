@@ -128,6 +128,12 @@ router.put(
   postController.updatePost
 );
 
+router.delete(
+  "/posts/:postId",
+  authenticate(["admin"]),
+  postController.deletePost
+);
+
 router.get(
   "/orders/user/:userId",
   authenticate(["admin"]),
@@ -135,8 +141,6 @@ router.get(
 );
 
 router.get("/orders/:id", authenticate(["admin"]), orderController.getOrder);
-
-
 
 router.put(
   "/orders/:id/payment",

@@ -22,7 +22,7 @@ async function sendPostEmails(emails, post) {
       <h1>New Product: ${post.productName}</h1>
       <p>Full Amount: Rs.${post.fullAmount}</p>
     <p>Full Amount: Rs.${post.unitPrice}</p>
-      <p>Expected Profit: Rs.$${post.expectedProfit}</p>
+      <p>Expected Profit: Rs.${post.expectedProfit}</p>
       <p>Time Line: ${post.timeLine}</p>
       ${
         post.image
@@ -56,7 +56,6 @@ exports.getAdminData = (req, res) => {
   res.json({ message: "Welcome to the admin dashboard!" });
 };
 
-
 // In your getAvailablePosts controller - FIXED VERSION
 exports.getAvailablePosts = async (req, res) => {
   try {
@@ -70,7 +69,6 @@ exports.getAvailablePosts = async (req, res) => {
       visibleTo: userId, // Only show posts where user is in visibleTo
     }).populate("createdBy", "username");
 
-   
     // res.json(visiblePosts);
     res.json(posts);
   } catch (error) {
@@ -141,8 +139,6 @@ exports.createPost = async (req, res) => {
     });
   }
 };
-
-
 
 // Get all posts
 exports.getAllPosts = async (req, res) => {
@@ -244,5 +240,54 @@ exports.updatePost = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ msg: error.message });
+  }
+};
+
+// Add this to your post controller file (where your other post routes are)
+
+// Delete post by ID
+exports.deletePost = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+
+    // Check if post exists
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    // Optional: Check if user is authorized to delete (admin or post creator)
+    // For admin-only deletion:
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ msg: "Unauthorized - Admin access required" });
+    }
+
+    // If the post has an image, delete it from Cloudinary first
+    if (post.image) {
+      try {
+        // Extract public ID from Cloudinary URL
+        const publicId = post.image.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(`post_images/${publicId}`);
+      } catch (cloudinaryErr) {
+        console.error("Error deleting image from Cloudinary:", cloudinaryErr);
+        // Continue with post deletion even if image deletion fails
+      }
+    }
+
+    // Delete the post
+    await Post.findByIdAndDelete(postId);
+
+    // Optional: Delete related orders if needed
+    // await Order.deleteMany({ post: postId });
+
+    res.json({ msg: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).json({
+      msg: "Server error",
+      error: error.message,
+    });
   }
 };
