@@ -74,7 +74,7 @@ const AboutSection = () => {
               Wonder Choice has grown into a dynamic and forward-thinking
               wholesale platform. What started as a passion project to serve
               customers with quality products has evolved into a thriving
-              business with over $10 million in assets and a rapidly expanding
+              business with over 10 million in assets and a rapidly expanding
               global footprint.
             </p>
             <p className="text-base sm:text-lg mb-4">
