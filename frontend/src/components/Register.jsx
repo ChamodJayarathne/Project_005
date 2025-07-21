@@ -83,7 +83,7 @@ function Register() {
 
       {/* Home button */}
       <div className="absolute top-4 right-4">
-        <button className="bg-indigo-300 text-white px-6 py-2 rounded-full hover:bg-indigo-400 transition-colors">
+        <button  onClick={() => navigate("/")} className="bg-indigo-300 text-white px-6 py-2 rounded-full hover:bg-indigo-400 transition-colors">
           Home
         </button>
       </div>

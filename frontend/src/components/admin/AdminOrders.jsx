@@ -226,8 +226,9 @@ function AdminOrders() {
     const tableRows = orders.map((order) => [
       order.productName,
       order.user?.username || "N/A",
-      `RS.${order.fullAmount?.toLocaleString()}`,
-      `RS.${order.expectedProfit?.toLocaleString()}`,
+      `RS.${order.
+originalFullAmount?.toLocaleString()}`,
+      `RS.${order.originalExpectedProfit?.toLocaleString()}`,
       order.status.toUpperCase(),
       new Date(order.createdAt).toLocaleString(),
     ]);
