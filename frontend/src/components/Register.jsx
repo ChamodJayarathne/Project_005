@@ -19,7 +19,7 @@ function Register() {
   const [profileImage, setProfileImage] = useState(null);
 
   const navigate = useNavigate();
-   const baseUrl = import.meta.env.VITE_API_BASE_URI ;
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -30,7 +30,7 @@ function Register() {
   };
 
   const handleFileChange = (e) => {
-    setProfileImage(e.target.files[0]); 
+    setProfileImage(e.target.files[0]);
   };
 
   const handleSubmit = async (e) => {
@@ -47,17 +47,11 @@ function Register() {
       data.append("profileImage", profileImage); // Append image file
     }
     try {
-  
-
-      const res = await axios.post(
-        `${baseUrl}/api/auth/register`,
-        data,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const res = await axios.post(`${baseUrl}/api/auth/register`, data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       toast.success("User registered successfully! Redirecting to login...");
       setTimeout(() => navigate("/login"), 2000);
@@ -83,7 +77,10 @@ function Register() {
 
       {/* Home button */}
       <div className="absolute top-4 right-4">
-        <button  onClick={() => navigate("/")} className="bg-indigo-300 text-white px-6 py-2 rounded-full hover:bg-indigo-400 transition-colors">
+        <button
+          onClick={() => navigate("/")}
+          className="bg-indigo-300 text-white px-6 py-2 rounded-full hover:bg-indigo-400 transition-colors"
+        >
           Home
         </button>
       </div>
@@ -164,6 +161,7 @@ function Register() {
                   onChange={handleFileChange}
                   accept="image/*"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
               </div>
 
@@ -207,9 +205,8 @@ function Register() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
             REGISTER
             <br />
-            NOW WITH   US
+            NOW WITH US
             <br />
-          
           </h1>
         </div>
       </div>

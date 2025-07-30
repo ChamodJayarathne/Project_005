@@ -28,6 +28,8 @@ function Dashboard({ user, onLogout }) {
 
   const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
+ 
+
   const fetchProfitSummary = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -35,6 +37,9 @@ function Dashboard({ user, onLogout }) {
         `${baseUrl}/api/protected/orders/profit/summary`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+
+  
       setProfitSummary(response.data.data);
     } catch (error) {
       console.error("Error fetching profit summary:", error);
@@ -150,7 +155,7 @@ function Dashboard({ user, onLogout }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setPosts(posts.filter(p => p._id !== post._id));
+      setPosts(posts.filter((p) => p._id !== post._id));
       // Update UI and trigger refresh
       // setPosts(posts.filter((p) => p._id !== post._id));
       //  setRefreshCounter((prev) => prev + 1);

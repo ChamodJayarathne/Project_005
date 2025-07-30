@@ -11,6 +11,8 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiDownload,
+  FiMail,
+  FiUser,
 } from "react-icons/fi";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
@@ -31,7 +33,7 @@ export default function OrderDetail() {
     // unitPrice: 0,
   });
   const [paymentHistory, setPaymentHistory] = useState([]);
-  const baseUrl = import.meta.env.VITE_API_BASE_URI ;
+  const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -50,7 +52,6 @@ export default function OrderDetail() {
           payNow: "",
           fullAmount: response.data.fullAmount,
           expectedProfit: response.data.expectedProfit,
-    
         });
 
         if (response.data.paymentHistory) {
@@ -66,6 +67,38 @@ export default function OrderDetail() {
     fetchOrder();
   }, [orderId]);
 
+  // useEffect(() => {
+  //   const fetchOrder = async () => {
+  //     try {
+  //       const token = localStorage.getItem("token");
+  //       const response = await axios.get(
+  //         `${baseUrl}/api/protected/orders/${orderId}`,
+  //         {
+  //           headers: { Authorization: `Bearer ${token}` },
+  //         }
+  //       );
+  //       setOrder(response.data);
+  //       setFormData({
+  //         status: response.data.status,
+  //         adminNotes: response.data.adminNotes || "",
+  //         payNow: "",
+  //         fullAmount: response.data.fullAmount,
+  //         expectedProfit: response.data.expectedProfit,
+  //       });
+
+  //       if (response.data.paymentHistory) {
+  //         setPaymentHistory(response.data.paymentHistory);
+  //       }
+  //     } catch (err) {
+  //       setError(err.response?.data?.msg || "Failed to fetch order");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchOrder();
+  // }, [orderId]);
+
   const handlePaymentChange = (e) => {
     const value = e.target.value;
     if (/^\d*\.?\d*$/.test(value) || value === "") {
@@ -73,9 +106,140 @@ export default function OrderDetail() {
     }
   };
 
+  // const handlePaymentSubmit = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     const paymentAmount = parseFloat(formData.payNow);
+
+  //     if (!paymentAmount || paymentAmount <= 0) {
+  //       throw new Error("Please enter a valid payment amount");
+  //     }
+
+  //     const response = await axios.put(
+  //       `${baseUrl}/api/protected/orders/${orderId}`,
+  //       {
+  //         payNow: paymentAmount,
+  //         adminNotes: formData.adminNotes,
+  //       },
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       }
+  //     );
+
+  //     if (response.data.success) {
+  //       setOrder(response.data.order);
+  //       setFormData({ payNow: "", adminNotes: "" });
+  //       setIsEditing(false);
+  //       alert(`${response.data.message}`);
+  //     } else {
+  //       const { msg, paymentDetails, remaining } = response.data;
+  //       const confirmation = window.confirm(
+  //         `${msg}\n\nApplied Payments:\n${paymentDetails}\n\n` +
+  //           `Remaining:\nFull Amount: RS ${remaining.fullAmount.toLocaleString()}\n` +
+  //           `Expected Profit: RS ${remaining.expectedProfit.toLocaleString()}\n\n` +
+  //           `Do you want to proceed with the partial payment?`
+  //       );
+
+  //       if (confirmation) {
+  //         const updatedResponse = await axios.get(
+  //           `${baseUrl}/api/protected/orders/${orderId}`,
+  //           { headers: { Authorization: `Bearer ${token}` } }
+  //         );
+  //         setOrder(updatedResponse.data);
+  //         setFormData({ payNow: "", adminNotes: "" });
+  //         setIsEditing(false);
+  //         alert(
+  //           "Partial payment processed successfully! An email has been sent to the user."
+  //         );
+  //       }
+  //     }
+  //   } catch (err) {
+  //     setError(err.response?.data?.msg || err.message);
+  //   }
+  // };
+
+  // const handlePaymentSubmit = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     const paymentAmount = parseFloat(formData.payNow);
+
+  //     if (!paymentAmount || paymentAmount <= 0) {
+  //       throw new Error("Please enter a valid payment amount");
+  //     }
+
+  //     // Show loading state
+  //     setLoading(true);
+
+  //     const response = await axios.put(
+  //       `${baseUrl}/api/protected/orders/${orderId}`,
+  //       {
+  //         payNow: paymentAmount,
+  //         adminNotes: formData.adminNotes,
+  //       },
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       }
+  //     );
+
+  //     if (response.data.success) {
+  //       setOrder(response.data.order);
+  //       setFormData({ payNow: "", adminNotes: "" });
+  //       setIsEditing(false);
+
+  //       // Show success notification with email info
+  //       alert(
+  //         `Payment processed successfully! A confirmation email has been sent to ${
+  //           order.user?.email || "the user"
+  //         }.`
+  //       );
+
+  //       // Refresh the order data to get latest payment history
+  //       const updatedResponse = await axios.get(
+  //         `${baseUrl}/api/protected/orders/${orderId}`,
+  //         { headers: { Authorization: `Bearer ${token}` } }
+  //       );
+  //       setOrder(updatedResponse.data);
+  //       if (updatedResponse.data.paymentHistory) {
+  //         setPaymentHistory(updatedResponse.data.paymentHistory);
+  //       }
+  //     } else {
+  //       const { msg, paymentDetails, remaining } = response.data;
+  //       const confirmation = window.confirm(
+  //         `${msg}\n\nApplied Payments:\n${paymentDetails}\n\n` +
+  //           `Remaining:\nFull Amount: RS ${remaining.fullAmount.toLocaleString()}\n` +
+  //           `Expected Profit: RS ${remaining.expectedProfit.toLocaleString()}\n\n` +
+  //           `Do you want to proceed with the partial payment?`
+  //       );
+
+  //       if (confirmation) {
+  //         const updatedResponse = await axios.get(
+  //           `${baseUrl}/api/protected/orders/${orderId}`,
+  //           { headers: { Authorization: `Bearer ${token}` } }
+  //         );
+  //         setOrder(updatedResponse.data);
+  //         setFormData({ payNow: "", adminNotes: "" });
+  //         setIsEditing(false);
+  //         alert(
+  //           `Partial payment processed successfully! A confirmation email has been sent to ${
+  //             order.user?.email || "the user"
+  //           }.`
+  //         );
+  //       }
+  //     }
+  //   } catch (err) {
+  //     setError(err.response?.data?.msg || err.message);
+  //     alert(`Payment processing failed: ${err.message}`);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
       const paymentAmount = parseFloat(formData.payNow);
 
@@ -84,45 +248,81 @@ export default function OrderDetail() {
       }
 
       const response = await axios.put(
-        `${baseUrl}/api/protected/orders/${orderId}`,
+        `${baseUrl}/api/protected/orders/${orderId}/process-payment`,
         {
           payNow: paymentAmount,
           adminNotes: formData.adminNotes,
         },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.data.success) {
-        setOrder(response.data.order);
-        setFormData({ payNow: "", adminNotes: "" });
-        setIsEditing(false);
-        alert(`${response.data.message}`);
-        // Payment processed successfully!\n
-      } else {
-        const { msg, paymentDetails, remaining } = response.data;
-        const confirmation = window.confirm(
-          `${msg}\n\nApplied Payments:\n${paymentDetails}\n\n` +
-            `Remaining:\nFull Amount: RS ${remaining.fullAmount.toLocaleString()}\n` +
-            `Expected Profit: RS ${remaining.expectedProfit.toLocaleString()}\n\n` +
-            `Do you want to proceed with the partial payment?`
+        alert(`Payment processed! ${response.data.message}`);
+        // Refresh order data
+        const updatedResponse = await axios.get(
+          `${baseUrl}/api/protected/orders/${orderId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-
-        if (confirmation) {
-          const updatedResponse = await axios.get(
-            `${baseUrl}/api/protected/orders/${orderId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          setOrder(updatedResponse.data);
-          setFormData({ payNow: "", adminNotes: "" });
-          setIsEditing(false);
-        }
+        setOrder(updatedResponse.data);
+        setIsEditing(false);
       }
     } catch (err) {
-      setError(err.response?.data?.msg || err.message);
+      alert(`Payment failed: ${err.response?.data?.msg || err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
+
+  // const handlePaymentSubmit = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     const paymentAmount = parseFloat(formData.payNow);
+
+  //     if (!paymentAmount || paymentAmount <= 0) {
+  //       throw new Error("Please enter a valid payment amount");
+  //     }
+
+  //     const response = await axios.put(
+  //       `${baseUrl}/api/protected/orders/${orderId}`,
+  //       {
+  //         payNow: paymentAmount,
+  //         adminNotes: formData.adminNotes,
+  //       },
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       }
+  //     );
+
+  //     if (response.data.success) {
+  //       setOrder(response.data.order);
+  //       setFormData({ payNow: "", adminNotes: "" });
+  //       setIsEditing(false);
+  //       alert(`${response.data.message}`);
+  //       // Payment processed successfully!\n
+  //     } else {
+  //       const { msg, paymentDetails, remaining } = response.data;
+  //       const confirmation = window.confirm(
+  //         `${msg}\n\nApplied Payments:\n${paymentDetails}\n\n` +
+  //           `Remaining:\nFull Amount: RS ${remaining.fullAmount.toLocaleString()}\n` +
+  //           `Expected Profit: RS ${remaining.expectedProfit.toLocaleString()}\n\n` +
+  //           `Do you want to proceed with the partial payment?`
+  //       );
+
+  //       if (confirmation) {
+  //         const updatedResponse = await axios.get(
+  //           `${baseUrl}/api/protected/orders/${orderId}`,
+  //           { headers: { Authorization: `Bearer ${token}` } }
+  //         );
+  //         setOrder(updatedResponse.data);
+  //         setFormData({ payNow: "", adminNotes: "" });
+  //         setIsEditing(false);
+  //       }
+  //     }
+  //   } catch (err) {
+  //     setError(err.response?.data?.msg || err.message);
+  //   }
+  // };
 
   const handleStatusChange = async (newStatus) => {
     try {
@@ -256,7 +456,9 @@ export default function OrderDetail() {
 
   if (!order) return <div>Order not found</div>;
 
-  const totalExpectedFullAmount = order.originalFullAmount + (order.originalExpectedProfit || order.expectedProfit);
+  const totalExpectedFullAmount =
+    order.originalFullAmount +
+    (order.originalExpectedProfit || order.expectedProfit);
 
   const totalPaid =
     order.originalFullAmount -
@@ -319,6 +521,43 @@ export default function OrderDetail() {
         </div>
 
         <h2 className="text-2xl font-bold mb-6">Order Details</h2>
+
+        <div className="bg-gray-50 p-4 rounded-lg mb-6">
+          <h3 className="font-medium text-gray-700 mb-3 flex items-center">
+            <FiUser className="mr-2" /> User Information
+          </h3>
+          <div className="space-y-2">
+            {order.user && (
+              <>
+                <p>
+                  <span className="font-medium">Username:</span>{" "}
+                  {order.user.username || "N/A"}
+                </p>
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  {order.user.email ? (
+                    <a
+                      href={`mailto:${order.user.email}`}
+                      className="text-blue-600 hover:underline flex items-center"
+                    >
+                      <FiMail className="mr-1" /> {order.user.email}
+                    </a>
+                  ) : (
+                    "N/A"
+                  )}
+                </p>
+                {order.user.firstName && (
+                  <p>
+                    <span className="font-medium">Name:</span>{" "}
+                    {[order.user.firstName, order.user.lastName]
+                      .filter(Boolean)
+                      .join(" ")}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
 
         {isEditing ? (
           <form onSubmit={handlePaymentSubmit}>
@@ -470,10 +709,12 @@ export default function OrderDetail() {
                     )?.toLocaleString()}
                   </p>
                   <p>
-                    <span className="font-medium">Toatal Expected Full Amount:</span> RS.
+                    <span className="font-medium">
+                      Toatal Expected Full Amount:
+                    </span>{" "}
+                    RS.
                     {totalExpectedFullAmount.toLocaleString()}
                   </p>
-                 
                 </div>
               </div>
 
