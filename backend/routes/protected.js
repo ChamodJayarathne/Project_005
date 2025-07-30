@@ -143,7 +143,7 @@ router.get(
 router.get("/orders/:id", authenticate(["admin"]), orderController.getOrder);
 
 router.put(
-  "/orders/:id/payment",
+  "/orders/:id/process-payment",
   authenticate(["admin"]),
   orderController.processPayment
 );
@@ -195,5 +195,8 @@ router.get(
   authenticate(["user"]),
   orderController.getUserProfitSummary
 );
+
+// router.post('/test-email', orderController.testEmail);
+// router.post('/direct-email-test', orderController.directEmailTest);
 
 module.exports = router;
