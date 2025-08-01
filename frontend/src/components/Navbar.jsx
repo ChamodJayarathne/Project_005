@@ -196,7 +196,7 @@ function Navbar({ user, onLogout }) {
                     onLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="w-full text-left cursor-pointer bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors"
+                  className="w-full text-left cursor-pointer rounded-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors"
                 >
                   Logout
                 </button>
@@ -205,20 +205,26 @@ function Navbar({ user, onLogout }) {
 
             {!user && (
               <>
-                <Link
-                  to="/"
-                  className="text-white font-medium hover:text-blue-300 transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Home
-                </Link>
-                <Link
-                  to="/login"
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Login
-                </Link>
+                <nav className="mt-4 pb-4 grid  space-y-3 md:hidden">
+             
+       <Link
+                    to="/"
+                    className="text-white font-medium hover:text-blue-300 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+
+                
+           
+                </nav>
               </>
               // <Link
               //   to="/login"
