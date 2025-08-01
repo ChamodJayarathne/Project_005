@@ -21,7 +21,7 @@ async function sendPostEmails(emails, post) {
     html: `
       <h1>New Product: ${post.productName}</h1>
       <p>Full Amount: Rs.${post.fullAmount}</p>
-    <p>Full Amount: Rs.${post.unitPrice}</p>
+    <p>Unit Price: Rs.${post.unitPrice}</p>
       <p>Expected Profit: Rs.${post.expectedProfit}</p>
       <p>Time Line: ${post.timeLine}</p>
       ${
