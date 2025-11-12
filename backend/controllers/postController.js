@@ -127,8 +127,8 @@ exports.createPost = async (req, res) => {
     await newPost.save();
 
     // Send emails to all users
-    const userEmails = users.map((user) => user.email);
-    await sendPostEmails(userEmails, newPost);
+    // const userEmails = users.map((user) => user.email);
+    // await sendPostEmails(userEmails, newPost);
 
     res.status(201).json(newPost);
   } catch (error) {
