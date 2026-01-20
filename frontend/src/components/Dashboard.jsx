@@ -150,6 +150,8 @@ function Dashboard({ user, onLogout }) {
           fullAmount: post.fullAmount,
           expectedProfit: post.expectedProfit,
           unitPrice: post.unitPrice,
+          quantity:post.quantity,
+          sellingUnitPrice:post.sellingUnitPrice,
           timeLine: post.timeLine,
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -625,6 +627,14 @@ const PostItem = ({ order, onInvest }) => {
           <div className="flex justify-between">
             <span className="text-gray-600">Unit Price:</span>
             <span className="font-medium">RS.{order.unitPrice}</span>
+          </div>
+              <div className="flex justify-between">
+            <span className="text-gray-600">Quantity:</span>
+            <span className="font-medium">{order.quantity}</span>
+          </div>
+             <div className="flex justify-between">
+            <span className="text-gray-600">Selling Unit Price:</span>
+            <span className="font-medium">RS.{order.sellingUnitPrice}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Expected Profit:</span>

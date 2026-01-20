@@ -1,4 +1,168 @@
 /* eslint-disable no-unused-vars */
+// /* eslint-disable no-unused-vars */
+
+// import React, { useEffect, useState } from "react";
+// import {
+//   Routes,
+//   Route,
+//   Navigate,
+//   useNavigate,
+//   useLocation,
+// } from "react-router-dom";
+// import axios from "axios";
+
+// import Login from "./components/Login";
+// import Register from "./components/Register";
+// import AdminDashboard from "./components/AdminDashboard";
+// import UserDashboard from "./pages/UserDashboard";
+// import GuestHome from "./components/GuestHome";
+// import ProtectedRoute from "./components/ProtectedRoute";
+// import Dashboard from "./components/Dashboard";
+// import Navbar from "./components/Navbar";
+// import Footer from "./components/Footer";
+// import AdminLayout from "./layouts/AdminLayout";
+// import AddNewPost from "./components/admin/AddNewPost";
+// import Accounts from "./components/admin/Accounts";
+// import UserDetail from "./components/admin/UserDetail";
+// import UserForm from "./components/admin/UserForm";
+// import AdminOrders from "./components/admin/AdminOrders";
+// import MyOrders from "./components/MyOrders";
+// import OrderDetail from "./components/admin/OrderDetail";
+// import EditPost from "./components/admin/EditPost";
+// import PostDetails from "./components/admin/PostDetails";
+// import AdminSummary from "./components/admin/AdminSummary";
+// import AuthSuccess from "./components/AuthSuccess";
+// import { RefreshProvider } from "./context/RefreshContext";
+
+// export default function App() {
+//   const [user, setUser] = useState(() => {
+//     const savedUser = localStorage.getItem("user");
+//     return savedUser ? JSON.parse(savedUser) : null;
+//   });
+  
+//   const navigate = useNavigate();
+//   const location = useLocation();
+//   const baseUrl = import.meta.env.VITE_API_BASE_URI;
+
+//   useEffect(() => {
+//     const initializeAuth = async () => {
+//       const token = localStorage.getItem("token");
+
+//       if (token) {
+//         try {
+//           const response = await axios.get(
+//             `${baseUrl}/api/protected/current-user`,
+//             { headers: { Authorization: `Bearer ${token}` } }
+//           );
+
+//           if (response.data) {
+//             const userData = {
+//               id: response.data._id || response.data.id,
+//               username: response.data.username,
+//               role: response.data.role,
+//               email: response.data.email,
+//             };
+//             setUser(userData);
+//             localStorage.setItem("user", JSON.stringify(userData));
+//           }
+//         } catch (error) {
+//           console.error("Token validation failed:", error);
+//           localStorage.removeItem("token");
+//           localStorage.removeItem("user");
+//           setUser(null);
+//         }
+//       }
+//     };
+
+//     initializeAuth();
+//   }, []);
+
+//   const handleLogout = () => {
+//     localStorage.removeItem("token");
+//     localStorage.removeItem("user");
+//     setUser(null);
+//   };
+
+//   return (
+//     <>
+//       <Navbar user={user} onLogout={handleLogout} />
+//       <RefreshProvider>
+//         <Routes>
+//           {/* Public Routes */}
+//           <Route path="/" element={<GuestHome />} />
+//           <Route path="/auth-success" element={<AuthSuccess />} />
+//           <Route
+//             path="/login"
+//             element={
+//               user ? (
+//                 <Navigate to={`/${user.role}`} />
+//               ) : (
+//                 <Login setUser={setUser} />
+//               )
+//             }
+//           />
+//           <Route path="/register" element={<Register />} />
+
+//           {/* Admin Routes */}
+//           <Route
+//             path="/admin"
+//             element={
+//               <ProtectedRoute user={user} allowedRoles={["admin"]}>
+//                 <AdminLayout onLogout={handleLogout} />
+//               </ProtectedRoute>
+//             }
+//           >
+//             <Route index element={<AdminDashboard />} />
+//             <Route path="add-post" element={<AddNewPost />} />
+//             <Route path="accounts" element={<Accounts />} />
+//             <Route path="posts/:postId" element={<PostDetails />} />
+//             <Route path="posts/edit/:postId" element={<EditPost />} />
+//             <Route path="orders" element={<AdminOrders />} />
+//             <Route path="orders/:orderId" element={<OrderDetail />} />
+//             <Route path="users/:userId" element={<UserDetail />} />
+//             <Route path="users/create" element={<UserForm />} />
+//             <Route path="users/:userId/edit" element={<UserForm />} />
+//             <Route path="summary" element={<AdminSummary />} />
+//           </Route>
+
+//           {/* User Routes */}
+//           <Route
+//             path="/user"
+//             element={
+//               <ProtectedRoute user={user} allowedRoles={["user"]}>
+//                 <Dashboard user={user} onLogout={handleLogout} />
+//               </ProtectedRoute>
+//             }
+//           />
+
+//           <Route
+//             path="/home"
+//             element={
+//               <ProtectedRoute user={user} allowedRoles={["user"]}>
+//                 <UserDashboard user={user} onLogout={handleLogout} />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="/my-orders"
+//             element={
+//               <ProtectedRoute user={user} allowedRoles={["user"]}>
+//                 <MyOrders />
+//               </ProtectedRoute>
+//             }
+//           />
+
+//           {/* Fallback */}
+//           <Route path="*" element={<Navigate to="/" />} />
+//         </Routes>
+//       </RefreshProvider>
+//       <Footer user={user} onLogout={handleLogout} />
+//     </>
+//   );
+// }
+
+
+
 // import React, { useEffect, useState } from "react";
 // import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -112,6 +276,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import axios from "axios";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -134,6 +299,7 @@ import EditPost from "./components/admin/EditPost";
 import PostDetails from "./components/admin/PostDetails";
 import AdminSummary from "./components/admin/AdminSummary";
 import { RefreshProvider } from "./context/RefreshContext";
+import AuthCallback from "./components/AuthCallback";
 
 export default function App() {
   // const [user, setUser] = useState(null);
@@ -146,6 +312,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const baseUrl = import.meta.env.VITE_API_BASE_URI;
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -193,6 +360,7 @@ export default function App() {
   };
 
   return (
+        <GoogleOAuthProvider clientId={googleClientId}>
     <>
       <Navbar user={user} onLogout={handleLogout} />
       <RefreshProvider>
@@ -209,7 +377,7 @@ export default function App() {
               )
             }
           />
-          <Route path="/register" element={<Register />} />
+          <Route path="/register" element={<Register setUser={setUser}/>} />
 
           {/* Admin Routes */}
           <Route
@@ -259,12 +427,13 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
+<Route path="/auth/callback" element={<AuthCallback />} />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </RefreshProvider>
       <Footer user={user} onLogout={handleLogout} />
     </>
+    </GoogleOAuthProvider>
   );
 }
