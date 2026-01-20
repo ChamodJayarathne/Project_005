@@ -27,6 +27,8 @@ const OrderSchema = new mongoose.Schema(
     fullAmount: { type: Number, required: true, min: 0 },
     expectedProfit: { type: Number, required: true, min: 0 },
     unitPrice: { type: Number, required: true, min: 0 },
+    quantity:{ type: Number, required: true, min: 0,default: 1 },
+       sellingUnitPrice: { type: Number, required: true,min: 0,default: 0  },
     post: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true },
 
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -75,6 +77,27 @@ OrderSchema.pre("save", function (next) {
     this.originalExpectedProfit = this.expectedProfit;
   }
   next();
+});
+
+OrderSchema.post('find', function(docs) {
+  if (docs) {
+    if (Array.isArray(docs)) {
+      docs.forEach(doc => {
+        if (!doc.quantity) doc.quantity = 1;
+        if (!doc.sellingUnitPrice) doc.sellingUnitPrice = doc.unitPrice || 0;
+      });
+    } else {
+      if (!docs.quantity) docs.quantity = 1;
+      if (!docs.sellingUnitPrice) docs.sellingUnitPrice = docs.unitPrice || 0;
+    }
+  }
+});
+
+OrderSchema.post('findOne', function(doc) {
+  if (doc) {
+    if (!doc.quantity) doc.quantity = 1;
+    if (!doc.sellingUnitPrice) doc.sellingUnitPrice = doc.unitPrice || 0;
+  }
 });
 
 module.exports = mongoose.model("Order", OrderSchema);

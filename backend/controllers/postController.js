@@ -79,8 +79,19 @@ exports.getAvailablePosts = async (req, res) => {
 
 exports.createPost = async (req, res) => {
   try {
-    const { productName, fullAmount, unitPrice, expectedProfit, timeLine } =
+    const { productName, unitPrice,quantity, sellingUnitPrice,  expectedProfit, timeLine } =
       req.body;
+
+      //  const fullAmount = parseFloat(unitPrice) * parseFloat(quantity);
+          // Validate required fields
+    if (!productName || !unitPrice || !quantity || !sellingUnitPrice || !expectedProfit || !timeLine) {
+      return res.status(400).json({ msg: "All fields are required" });
+    }
+
+    // Calculate full amount
+    const unitPriceNum = parseFloat(unitPrice);
+    const quantityNum = parseInt(quantity);
+    const fullAmount = unitPriceNum * quantityNum;
 
     let imageUrl = null;
 
@@ -111,8 +122,10 @@ exports.createPost = async (req, res) => {
 
     const newPost = new Post({
       productName,
-      fullAmount,
-      unitPrice,
+     unitPrice: unitPriceNum,
+      quantity: quantityNum,
+       fullAmount,
+       sellingUnitPrice,
       expectedProfit,
       timeLine,
       image: imageUrl,
@@ -125,6 +138,7 @@ exports.createPost = async (req, res) => {
     });
 
     await newPost.save();
+    console.log(newPost);
 
     // Send emails to all users
     // const userEmails = users.map((user) => user.email);

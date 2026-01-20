@@ -1605,6 +1605,14 @@ const Post = require("../models/Post");
 const User = require("../models/User");
 const nodemailer = require("nodemailer");
 
+const getSafeOrderFields = (order) => {
+  return {
+    ...order,
+    quantity: order.quantity || 1,
+    sellingUnitPrice: order.sellingUnitPrice || order.unitPrice || 0
+  };
+};
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -1854,6 +1862,8 @@ exports.createOrder = async (req, res) => {
       postId,
       productName,
       unitPrice,
+      quantity,
+      sellingUnitPrice,
       fullAmount,
       expectedProfit,
       timeLine,
@@ -1865,13 +1875,15 @@ exports.createOrder = async (req, res) => {
       !productName ||
       !fullAmount ||
       !unitPrice ||
+      !quantity ||
+      !sellingUnitPrice ||
       !expectedProfit ||
       !timeLine
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "All fields are required: postId, productName, unitPrice fullAmount, expectedProfit, timeLine",
+          "All fields are required: postId, productName, unitPrice, quantity, sellingUnitPrice, fullAmount, expectedProfit, timeLine",
       });
     }
 
@@ -1881,6 +1893,8 @@ exports.createOrder = async (req, res) => {
       fullAmount: Number(fullAmount),
       expectedProfit: Number(expectedProfit),
       unitPrice: Number(unitPrice),
+      quantity:Number(quantity),
+      sellingUnitPrice:Number(sellingUnitPrice),
       post: postId,
       //   postFullAmount: post.fullAmount,
       //   postExpectedProfit: post.expectedProfit,
@@ -1962,12 +1976,27 @@ exports.approveOrder = async (req, res) => {
   }
 };
 
+// exports.getAdminOrders = async (req, res) => {
+//   try {
+//     const orders = await Order.find()
+//       .populate("user", "username email")
+//       .populate("post", "productName");
+//     res.json(orders);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
 exports.getAdminOrders = async (req, res) => {
   try {
     const orders = await Order.find()
       .populate("user", "username email")
       .populate("post", "productName");
-    res.json(orders);
+
+    // Apply default values to each order
+    const safeOrders = orders.map(order => getSafeOrderFields(order.toObject()));
+    
+    res.json(safeOrders);
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
@@ -2014,14 +2043,38 @@ exports.getUserOrders = async (req, res) => {
     const orders = await Order.find(query)
       .sort({ createdAt: -1 })
       .select(
-        "productName fullAmount expectedProfit unitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
+        "productName fullAmount expectedProfit unitPrice quantity sellingUnitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
       );
 
-    res.json(orders);
+    // Apply default values to each order
+    const safeOrders = orders.map(order => getSafeOrderFields(order.toObject()));
+    
+    res.json(safeOrders);
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
 };
+
+// exports.getUserOrders = async (req, res) => {
+//   try {
+//     const { status } = req.query;
+//     let query = { user: req.user.id };
+
+//     if (status) {
+//       query.status = status;
+//     }
+
+//     const orders = await Order.find(query)
+//       .sort({ createdAt: -1 })
+//       .select(
+//         "productName fullAmount expectedProfit unitPrice quantity sellingUnitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
+//       );
+
+//     res.json(orders);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
 
 // Get expired orders cleanup job
 exports.cleanExpiredOrders = async () => {
@@ -2086,11 +2139,30 @@ exports.getOrder = async (req, res) => {
       return res.status(404).json({ msg: "Order not found" });
     }
 
-    res.json(order);
+    // Ensure default values for new fields
+    const safeOrder = getSafeOrderFields(order.toObject());
+    
+    res.json(safeOrder);
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
 };
+
+// exports.getOrder = async (req, res) => {
+//   try {
+//     const order = await Order.findById(req.params.id)
+//       .populate("user", "username email")
+//       .populate("post", "productName image");
+
+//     if (!order) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     res.json(order);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
 
 exports.updateOrder = async (req, res) => {
   try {
@@ -2194,6 +2266,38 @@ exports.updateOrder = async (req, res) => {
       success: false,
       msg: error.message,
     });
+  }
+};
+
+// Add this function to your orderController.js
+exports.updateOrderDetails = async (req, res) => {
+  try {
+    const { quantity, sellingUnitPrice } = req.body;
+    
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ msg: "Order not found" });
+    }
+
+    // Update order details
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        quantity: quantity || order.quantity,
+        sellingUnitPrice: sellingUnitPrice || order.sellingUnitPrice,
+        updatedAt: Date.now(),
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Order details updated successfully",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Error updating order details:", error);
+    res.status(500).json({ msg: error.message });
   }
 };
 

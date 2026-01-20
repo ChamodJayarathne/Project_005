@@ -150,6 +150,8 @@ router.put(
 
 router.put("/orders/:id", authenticate(["admin"]), orderController.updateOrder);
 
+router.put("/orders/:id/details", authenticate(["admin"]), orderController.updateOrderDetails);
+
 router.get("/profile", authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");

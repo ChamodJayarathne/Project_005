@@ -2,8 +2,11 @@ const mongoose = require("mongoose");
 
 const postSchema = new mongoose.Schema({
   productName: { type: String, required: true },
-  fullAmount: { type: Number, required: true },
+  
   unitPrice: { type: Number, required: true },
+  quantity:{type:Number, required:true},
+  fullAmount: { type: Number, required: true },
+   sellingUnitPrice: { type: Number, required: true },
   expectedProfit: { type: Number, required: true },
   timeLine: { type: String, required: true },
   image: { type: String },
