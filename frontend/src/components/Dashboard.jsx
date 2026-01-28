@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import OrderSummary from "../components/OrderSummary";
 import item1 from "../assets/img/Item.jpg";
-import { FiDollarSign, FiFileText } from "react-icons/fi";
+import { FiDollarSign, FiFileText,FiAlertCircle  } from "react-icons/fi";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -13,6 +13,7 @@ function Dashboard({ user, onLogout }) {
   const [posts, setPosts] = useState([]);
   const [error, setError] = useState(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const [accountStatus, setAccountStatus] = useState(null);
   const [profitSummary, setProfitSummary] = useState({
     totalPaid: 0,
     totalRemaining: 0,
@@ -46,6 +47,29 @@ function Dashboard({ user, onLogout }) {
     }
   };
 
+  // Check account status
+  const checkAccountStatus = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${baseUrl}/api/protected/current-user`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      if (response.data && response.data.isActive !== undefined) {
+        setAccountStatus(response.data.isActive);
+        if (!response.data.isActive) {
+          setError("Your account has been disabled. Please contact administrator.");
+          setPosts([]); // Clear posts if account is disabled
+        }
+      }
+    } catch (error) {
+      console.error("Error checking account status:", error);
+    }
+  };
+
   // Fetch current user data
   useEffect(() => {
     const fetchUserData = async () => {
@@ -65,6 +89,7 @@ function Dashboard({ user, onLogout }) {
 
         if (response.data) {
           setUserData(response.data);
+           setAccountStatus(response.data.isActive);
           setError(null);
         }
       } catch (error) {
@@ -78,98 +103,250 @@ function Dashboard({ user, onLogout }) {
     else setUserData(user);
   }, [user, onLogout]);
 
+
   // Fetch posts and orders with refresh capability
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setError(null);
-        // setLoading(true);
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("Authentication token missing");
-          return;
-        }
+useEffect(() => {
+// In the useEffect for fetching data:
+const fetchData = async () => {
+  try {
+    setError(null);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Authentication token missing");
+      return;
+    }
 
-        // Fetch available posts
-        const postsResponse = await axios.get(
-          `${baseUrl}/api/protected/posts/available`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            params: { _: Date.now() },
-          }
-        );
+         await checkAccountStatus();
 
-        // Filter out expired posts and posts not visible to current user
-        // const now = new Date();
-        // const filteredPosts = postsResponse.data.filter((post) => {
-        //   const postTime = new Date(post.createdAt);
-        //   const isExpired = now - postTime > 48 * 60 * 60 * 1000;
-        //   return !isExpired;
-        // });
-        //         const filteredPosts = postsResponse.data.filter((post) => {
-        //   const postTime = new Date(post.createdAt);
-        //   const isExpired = now - postTime > 48 * 60 * 60 * 1000;
-        //   return !isExpired;
-        // });
-
-        // setPosts(filteredPosts);
-        setPosts(postsResponse.data);
-
-        // Fetch user orders
-        // const ordersResponse = await axios.get(
-        //   `${baseUrl}/api/protected/user/orders`,
-        //   { headers: { Authorization: `Bearer ${token}` } }
-        // );
-        // setUserOrders(ordersResponse.data);
-        const ordersResponse = await axios.get(
-          `${baseUrl}/api/protected/user/orders?status=approved`, // Add status filter
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setUserOrders(ordersResponse.data);
-
-        // Fetch profit summary
-        await fetchProfitSummary();
-      } catch (error) {
-        console.error("Network Error:", error);
-        setError("Network error. Please try again later.");
+    // First, check user status
+    const userResponse = await axios.get(
+      `${baseUrl}/api/protected/current-user`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
       }
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, [refreshCounter]); // Added refreshCounter dependency
+    );
 
-  const handleInvest = async (post) => {
+    const userData = userResponse.data;
+    setUserData(userData);
+    
+    // If user is inactive, show appropriate message
+    if (!userData.isActive) {
+      setAccountStatus(false);
+      setError("Your account has been disabled. Please contact administrator.");
+      setPosts([]);
+      setUserOrders([]);
+      return;
+    }
+
+    setAccountStatus(true);
+    
+    // Fetch posts for active users
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${baseUrl}/api/protected/orders`,
+      const postsResponse = await axios.get(
+        `${baseUrl}/api/protected/posts/available`,
         {
-          postId: post._id,
-          productName: post.productName,
-          fullAmount: post.fullAmount,
-          expectedProfit: post.expectedProfit,
-          unitPrice: post.unitPrice,
-          quantity:post.quantity,
-          sellingUnitPrice:post.sellingUnitPrice,
-          timeLine: post.timeLine,
-        },
+          headers: { Authorization: `Bearer ${token}` },
+          params: { _: Date.now() },
+        }
+      );
+      
+      setPosts(postsResponse.data);
+      console.log(`Loaded ${postsResponse.data.length} posts`);
+      
+    } catch (postsError) {
+      console.error("Error fetching posts:", postsError);
+      setPosts([]);
+    }
+
+    // Fetch user orders
+    try {
+      const ordersResponse = await axios.get(
+        `${baseUrl}/api/protected/user/orders`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      setUserOrders(ordersResponse.data);
+       await fetchProfitSummary();
+    } catch (ordersError) {
+      console.error("Error fetching orders:", ordersError);
+      setUserOrders([]);
+    }
 
-      setPosts(posts.filter((p) => p._id !== post._id));
-      // Update UI and trigger refresh
-      // setPosts(posts.filter((p) => p._id !== post._id));
-      //  setRefreshCounter((prev) => prev + 1);
-      // setRefreshCounter((prev) => prev + 1); // Trigger refresh
-      alert("Investment successful!");
-    } catch (error) {
-      console.error("Investment error:", error);
+  } catch (error) {
+    console.error("Network Error:", error);
+    if (error.response?.status === 403) {
+      setError("Your account has been disabled. Please contact administrator.");
+      setAccountStatus(false);
+    } else {
+      setError("Network error. Please try again later.");
+    }
+  }
+};
+  
+  fetchData();
+  const interval = setInterval(fetchData, 30000);
+  return () => clearInterval(interval);
+}, [refreshCounter]); // Removed accountStatus dependency
+  // Fetch posts and orders with refresh capability
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       setError(null);
+  //       // setLoading(true);
+  //       const token = localStorage.getItem("token");
+  //       if (!token) {
+  //         setError("Authentication token missing");
+  //         return;
+  //       }
+
+  //       // Fetch available posts
+  //       // const postsResponse = await axios.get(
+  //       //   `${baseUrl}/api/protected/posts/available`,
+  //       //   {
+  //       //     headers: { Authorization: `Bearer ${token}` },
+  //       //     params: { _: Date.now() },
+  //       //   }
+  //       // );
+
+  //               // First check account status
+  //       await checkAccountStatus();
+
+  //       // Only fetch posts if account is active
+  //       if (accountStatus !== false) {
+  //         // Fetch available posts
+  //         const postsResponse = await axios.get(
+  //           `${baseUrl}/api/protected/posts/available`,
+  //           {
+  //             headers: { Authorization: `Bearer ${token}` },
+  //             params: { _: Date.now() },
+  //           }
+  //         );
+  //         setPosts(postsResponse.data);
+  //       }
+
+  //       // Filter out expired posts and posts not visible to current user
+  //       // const now = new Date();
+  //       // const filteredPosts = postsResponse.data.filter((post) => {
+  //       //   const postTime = new Date(post.createdAt);
+  //       //   const isExpired = now - postTime > 48 * 60 * 60 * 1000;
+  //       //   return !isExpired;
+  //       // });
+  //       //         const filteredPosts = postsResponse.data.filter((post) => {
+  //       //   const postTime = new Date(post.createdAt);
+  //       //   const isExpired = now - postTime > 48 * 60 * 60 * 1000;
+  //       //   return !isExpired;
+  //       // });
+
+  //       // setPosts(filteredPosts);
+  //       // setPosts(postsResponse.data);
+
+  //       // Fetch user orders
+  //       // const ordersResponse = await axios.get(
+  //       //   `${baseUrl}/api/protected/user/orders`,
+  //       //   { headers: { Authorization: `Bearer ${token}` } }
+  //       // );
+  //       // setUserOrders(ordersResponse.data);
+  //       const ordersResponse = await axios.get(
+  //         `${baseUrl}/api/protected/user/orders?status=approved`, // Add status filter
+  //         { headers: { Authorization: `Bearer ${token}` } }
+  //       );
+  //       setUserOrders(ordersResponse.data);
+
+  //       // Fetch profit summary
+  //       await fetchProfitSummary();
+  //     } catch (error) {
+  //       console.error("Network Error:", error);
+  //        if (error.response?.status === 403 && error.response?.data?.error) {
+  //         // Account disabled error
+  //         setError(error.response.data.error);
+  //         setAccountStatus(false);
+  //       } else {
+  //         setError("Network error. Please try again later.");
+  //       }
+  //       // setError("Network error. Please try again later.");
+  //     }
+  //   };
+  //   fetchData();
+  //   const interval = setInterval(fetchData, 30000);
+  //   return () => clearInterval(interval);
+  // }, [refreshCounter, accountStatus]); // Added refreshCounter dependency
+
+
+  const handleInvest = async (post) => {
+  // Check if account is disabled before investing
+  if (accountStatus === false) {
+    alert("Your account is disabled. Please contact administrator.");
+    return;
+  }
+  
+  try {
+    const token = localStorage.getItem("token");
+    await axios.post(
+      `${baseUrl}/api/protected/orders`,
+      {
+        postId: post._id,
+        productName: post.productName,
+        fullAmount: post.fullAmount,
+        expectedProfit: post.expectedProfit,
+        unitPrice: post.unitPrice,
+        quantity: post.quantity,
+        sellingUnitPrice: post.sellingUnitPrice,
+        timeLine: post.timeLine,
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setPosts(posts.filter((p) => p._id !== post._id));
+    alert("Investment successful!");
+  } catch (error) {
+    console.error("Investment error:", error);
+    if (error.response?.status === 403) {
+      setAccountStatus(false);
+      alert("Your account is disabled. Please contact administrator.");
+    } else {
       alert(
         `Investment failed: ${error.response?.data?.message || error.message}`
       );
     }
-  };
+  }
+};
+  // const handleInvest = async (post) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     await axios.post(
+  //       `${baseUrl}/api/protected/orders`,
+  //       {
+  //         postId: post._id,
+  //         productName: post.productName,
+  //         fullAmount: post.fullAmount,
+  //         expectedProfit: post.expectedProfit,
+  //         unitPrice: post.unitPrice,
+  //         quantity:post.quantity,
+  //         sellingUnitPrice:post.sellingUnitPrice,
+  //         timeLine: post.timeLine,
+  //       },
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+
+  //     setPosts(posts.filter((p) => p._id !== post._id));
+  //     // Update UI and trigger refresh
+  //     // setPosts(posts.filter((p) => p._id !== post._id));
+  //     //  setRefreshCounter((prev) => prev + 1);
+  //     // setRefreshCounter((prev) => prev + 1); // Trigger refresh
+  //     alert("Investment successful!");
+  //   } catch (error) {
+  //     console.error("Investment error:", error);
+  //       if (error.response?.status === 403) {
+  //       alert("Your account is disabled. Please contact administrator.");
+  //     } else {
+  //       alert(
+  //         `Investment failed: ${error.response?.data?.message || error.message}`
+  //       );
+  //     }
+  //     // alert(
+  //     //   `Investment failed: ${error.response?.data?.message || error.message}`
+  //     // );
+  //   }
+  // };
 
   const generateDashboardPDF = () => {
     const doc = new jsPDF();
@@ -366,21 +543,45 @@ function Dashboard({ user, onLogout }) {
     );
   };
 
-  if (error) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="bg-red-50 p-5 rounded-lg text-center mb-5">
-          <h2 className="text-2xl text-red-600">Error: {error}</h2>
+  // Update the error section to be more specific for disabled accounts
+if (error) {
+  return (
+    <div className="container mx-auto p-4">
+      <div className={`p-5 rounded-lg text-center mb-5 ${accountStatus === false ? 'bg-red-50' : 'bg-yellow-50'}`}>
+        <h2 className={`text-2xl ${accountStatus === false ? 'text-red-600' : 'text-yellow-600'}`}>
+          {accountStatus === false ? 'Account Disabled' : 'Error'}
+        </h2>
+        <p className="mt-2">{error}</p>
+        {accountStatus === false ? (
+          <p className="text-gray-600 mt-2">Please contact the administrator to restore access.</p>
+        ) : (
           <button
             onClick={() => window.location.reload()}
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Retry
           </button>
-        </div>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+  // if (error) {
+  //   return (
+  //     <div className="container mx-auto p-4">
+  //       <div className="bg-red-50 p-5 rounded-lg text-center mb-5">
+  //         <h2 className="text-2xl text-red-600">Error: {error}</h2>
+  //         <button
+  //           onClick={() => window.location.reload()}
+  //           className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+  //         >
+  //           Retry
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="container max-w-7xl mx-auto p-4">
@@ -541,7 +742,8 @@ function Dashboard({ user, onLogout }) {
 
 // PostItem component with timer
 const PostItem = ({ order, onInvest }) => {
-  const [timeLeft, setTimeLeft] = useState({
+
+   const [timeLeft, setTimeLeft] = useState({
     hours: 0,
     minutes: 0,
     seconds: 0,
@@ -553,9 +755,15 @@ const PostItem = ({ order, onInvest }) => {
   useEffect(() => {
     if (!order.createdAt) return;
 
-    // Calculate expiration time (48 hours from creation)
-    const postCreationTime = new Date(order.createdAt).getTime();
-    const expirationTime = postCreationTime + 48 * 60 * 60 * 1000;
+    // Use expiresAt if available, otherwise calculate from createdAt
+    let expirationTime;
+    if (order.expiresAt) {
+      expirationTime = new Date(order.expiresAt).getTime();
+    } else {
+      // Fallback: 48 hours from creation
+      const postCreationTime = new Date(order.createdAt).getTime();
+      expirationTime = postCreationTime + 48 * 60 * 60 * 1000;
+    }
 
     const updateTimer = () => {
       const now = new Date().getTime();
@@ -580,10 +788,53 @@ const PostItem = ({ order, onInvest }) => {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [order.createdAt]);
+  }, [order.createdAt, order.expiresAt]);
 
   // Hide component if expired
   if (expired) return null;
+  // const [timeLeft, setTimeLeft] = useState({
+  //   hours: 0,
+  //   minutes: 0,
+  //   seconds: 0,
+  // });
+  // const [expired, setExpired] = useState(false);
+
+  // const baseUrl = import.meta.env.VITE_API_BASE_URI;
+
+  // useEffect(() => {
+  //   if (!order.createdAt) return;
+
+  //   // Calculate expiration time (48 hours from creation)
+  //   const postCreationTime = new Date(order.createdAt).getTime();
+  //   const expirationTime = postCreationTime + 48 * 60 * 60 * 1000;
+
+  //   const updateTimer = () => {
+  //     const now = new Date().getTime();
+  //     const difference = expirationTime - now;
+
+  //     if (difference <= 0) {
+  //       setExpired(true);
+  //       return;
+  //     }
+
+  //     const hours = Math.floor(difference / (1000 * 60 * 60));
+  //     const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+  //     const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+  //     setTimeLeft({ hours, minutes, seconds });
+  //   };
+
+  //   // Initial update
+  //   updateTimer();
+
+  //   // Update every second
+  //   const interval = setInterval(updateTimer, 1000);
+
+  //   return () => clearInterval(interval);
+  // }, [order.createdAt]);
+
+  // // Hide component if expired
+  // if (expired) return null;
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-md flex flex-col md:flex-row items-center gap-4">
