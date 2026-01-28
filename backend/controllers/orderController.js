@@ -1600,6 +1600,7 @@
 //   }
 // };
 
+
 const Order = require("../models/Order");
 const Post = require("../models/Post");
 const User = require("../models/User");
@@ -1687,23 +1688,32 @@ async function sendPaymentEmail(userEmail, order, paymentDetails) {
   }
 }
 
+// Remove the problematic line - this should be defined in authController.js
+// const checkUserActive = require("../controllers/authController")
+
+// Add this middleware function in orderController.js
+const checkUserActive = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+    
+    if (!user.isActive) {
+      return res.status(403).json({ 
+        msg: "Your account is disabled. Please contact administrator." 
+      });
+    }
+    
+    next();
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
 exports.processPayment = async (req, res) => {
   try {
-    // const { payNow, adminNotes } = req.body;
-    // const order = await Order.findById(req.params.id).populate(
-    //   "user",
-    //   "username email"
-    // );
-
-    // if (!order) {
-    //   return res.status(404).json({ msg: "Order not found" });
-    // }
-
-    // const paymentAmount = parseFloat(payNow);
-    // if (isNaN(paymentAmount) || paymentAmount <= 0) {
-    //   return res.status(400).json({ msg: "Invalid payment amount" });
-    // }
-
     const { payNow, adminNotes } = req.body;
     const order = await Order.findById(req.params.id).populate(
       "user",
@@ -1790,7 +1800,7 @@ exports.processPayment = async (req, res) => {
       { new: true }
     ).populate("user", "username email");
 
-        // Send email after successful payment processing
+    // Send email after successful payment processing
     if (updatedOrder.user?.email) {
       try {
         const mailOptions = {
@@ -1823,27 +1833,6 @@ exports.processPayment = async (req, res) => {
       message: `Payment processed successfully${updatedOrder.user?.email ? ' and email sent' : ''}`,
       order: updatedOrder,
     });
-
-
-    // Send email confirmation
-    // if (updatedOrder.user?.email) {
-    //   try {
-    //     await sendPaymentEmail(updatedOrder.user.email, updatedOrder, {
-    //       amount: paymentAmount,
-    //       date: new Date(),
-    //     });
-    //   } catch (emailError) {
-    //     console.error("Failed to send payment email:", emailError);
-    //     // Continue with response even if email fails
-    //   }
-    // }
-
-    // res.json({
-    //   success: true,
-    //   message: "Payment processed successfully",
-    //   paymentDetails: paymentDescription.join("\n"),
-    //   order: updatedOrder,
-    // });
   } catch (error) {
     console.error("Payment processing error:", error);
     res.status(500).json({
@@ -1853,95 +1842,94 @@ exports.processPayment = async (req, res) => {
   }
 };
 
-exports.createOrder = async (req, res) => {
-  try {
-    console.log("Incoming order data:", req.body);
+exports.createOrder = [
+  checkUserActive, // Use the middleware defined in this file
+  async (req, res) => {
+    try {
+      console.log("Incoming order data:", req.body);
 
-    // Destructure all required fields from the request body
-    const {
-      postId,
-      productName,
-      unitPrice,
-      quantity,
-      sellingUnitPrice,
-      fullAmount,
-      expectedProfit,
-      timeLine,
-    } = req.body;
+      // Destructure all required fields from the request body
+      const {
+        postId,
+        productName,
+        unitPrice,
+        quantity,
+        sellingUnitPrice,
+        fullAmount,
+        expectedProfit,
+        timeLine,
+      } = req.body;
 
-    // Validate required fields
-    if (
-      !postId ||
-      !productName ||
-      !fullAmount ||
-      !unitPrice ||
-      !quantity ||
-      !sellingUnitPrice ||
-      !expectedProfit ||
-      !timeLine
-    ) {
-      return res.status(400).json({
+      // Validate required fields
+      if (
+        !postId ||
+        !productName ||
+        !fullAmount ||
+        !unitPrice ||
+        !quantity ||
+        !sellingUnitPrice ||
+        !expectedProfit ||
+        !timeLine
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "All fields are required: postId, productName, unitPrice, quantity, sellingUnitPrice, fullAmount, expectedProfit, timeLine",
+        });
+      }
+
+      // Create the new order
+      const newOrder = new Order({
+        productName,
+        fullAmount: Number(fullAmount),
+        expectedProfit: Number(expectedProfit),
+        unitPrice: Number(unitPrice),
+        quantity: Number(quantity),
+        sellingUnitPrice: Number(sellingUnitPrice),
+        post: postId,
+        timeLine,
+        user: req.user.id,
+        status: "pending",
+        originalFullAmount: fullAmount,
+        originalExpectedProfit: expectedProfit,
+        paymentHistory: [],
+      });
+
+      // Save the order to database
+      const savedOrder = await newOrder.save();
+
+      // Update the associated post
+      const updatedPost = await Post.findByIdAndUpdate(
+        postId,
+        {
+          $addToSet: {
+            investedUsers: req.user.id,
+          },
+          $pull: { visibleTo: req.user.id }, // Remove user from visibleTo
+        },
+        { new: true }
+      );
+
+      if (!updatedPost) {
+        throw new Error("Associated post not found");
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "Order created successfully",
+        order: savedOrder,
+        updatedPost: updatedPost,
+      });
+    } catch (error) {
+      console.error("Order creation error:", error);
+      res.status(500).json({
         success: false,
-        message:
-          "All fields are required: postId, productName, unitPrice, quantity, sellingUnitPrice, fullAmount, expectedProfit, timeLine",
+        message: "Failed to create order",
+        error: error.message,
       });
     }
-
-    // Create the new order
-    const newOrder = new Order({
-      productName,
-      fullAmount: Number(fullAmount),
-      expectedProfit: Number(expectedProfit),
-      unitPrice: Number(unitPrice),
-      quantity:Number(quantity),
-      sellingUnitPrice:Number(sellingUnitPrice),
-      post: postId,
-      //   postFullAmount: post.fullAmount,
-      //   postExpectedProfit: post.expectedProfit,
-      timeLine,
-      user: req.user.id,
-      status: "pending",
-      originalFullAmount: fullAmount,
-      originalExpectedProfit: expectedProfit,
-      paymentHistory: [],
-    });
-
-    // Save the order to database
-    const savedOrder = await newOrder.save();
-
-    // Update the associated post
-    const updatedPost = await Post.findByIdAndUpdate(
-      postId,
-      {
-        $addToSet: {
-          investedUsers: req.user.id,
-          // Remove user from visibleTo if they shouldn't see it anymore
-          // Or keep them if they should still see invested posts
-        },
-        $pull: { visibleTo: req.user.id }, // Remove user from visibleTo
-      },
-      { new: true }
-    );
-
-    if (!updatedPost) {
-      throw new Error("Associated post not found");
-    }
-
-    res.status(201).json({
-      success: true,
-      message: "Order created successfully",
-      order: savedOrder,
-      updatedPost: updatedPost,
-    });
-  } catch (error) {
-    console.error("Order creation error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create order",
-      error: error.message,
-    });
   }
-};
+];
 
 exports.approveOrder = async (req, res) => {
   try {
@@ -1964,9 +1952,6 @@ exports.approveOrder = async (req, res) => {
             order.post.createdBy, // Admin (post creator)
           ],
         },
-        // $addToSet: {
-        //   investedUsers: order.user, // Add user to investedUsers
-        // }
       });
     }
 
@@ -1975,17 +1960,6 @@ exports.approveOrder = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
-
-// exports.getAdminOrders = async (req, res) => {
-//   try {
-//     const orders = await Order.find()
-//       .populate("user", "username email")
-//       .populate("post", "productName");
-//     res.json(orders);
-//   } catch (error) {
-//     res.status(500).json({ msg: error.message });
-//   }
-// };
 
 exports.getAdminOrders = async (req, res) => {
   try {
@@ -2023,7 +1997,7 @@ exports.updateOrderStatus = async (req, res) => {
 
     res.json({
       success: true,
-      order: updatedOrder,
+      order: order,
     });
   } catch (error) {
     console.error("Error updating order status:", error);
@@ -2054,27 +2028,6 @@ exports.getUserOrders = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
-
-// exports.getUserOrders = async (req, res) => {
-//   try {
-//     const { status } = req.query;
-//     let query = { user: req.user.id };
-
-//     if (status) {
-//       query.status = status;
-//     }
-
-//     const orders = await Order.find(query)
-//       .sort({ createdAt: -1 })
-//       .select(
-//         "productName fullAmount expectedProfit unitPrice quantity sellingUnitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
-//       );
-
-//     res.json(orders);
-//   } catch (error) {
-//     res.status(500).json({ msg: error.message });
-//   }
-// };
 
 // Get expired orders cleanup job
 exports.cleanExpiredOrders = async () => {
@@ -2148,23 +2101,8 @@ exports.getOrder = async (req, res) => {
   }
 };
 
-// exports.getOrder = async (req, res) => {
-//   try {
-//     const order = await Order.findById(req.params.id)
-//       .populate("user", "username email")
-//       .populate("post", "productName image");
-
-//     if (!order) {
-//       return res.status(404).json({ msg: "Order not found" });
-//     }
-
-//     res.json(order);
-//   } catch (error) {
-//     res.status(500).json({ msg: error.message });
-//   }
-// };
-
-exports.updateOrder = async (req, res) => {
+// Update order with payment processing
+exports.updateOrderWithPayment = async (req, res) => {
   try {
     const { payNow, status, adminNotes } = req.body;
     const order = await Order.findById(req.params.id);
@@ -2328,94 +2266,6 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
-// exports.processPayment = async (req, res) => {
-//   try {
-//     const { payNow, adminNotes } = req.body;
-//     const order = await Order.findById(req.params.id);
-
-//     if (!order) {
-//       return res.status(404).json({ msg: "Order not found" });
-//     }
-
-//     const paymentAmount = parseFloat(payNow);
-//     if (isNaN(paymentAmount) || paymentAmount <= 0) {
-//       return res.status(400).json({ msg: "Invalid payment amount" });
-//     }
-
-//     let newFullAmount = order.fullAmount;
-//     let newExpectedProfit = order.expectedProfit;
-//     let remainingPayment = paymentAmount;
-//     const newPaymentHistory = [...order.paymentHistory];
-//     let paymentDescription = [];
-
-//     if (newFullAmount > 0) {
-//       const deductionFromFull = Math.min(remainingPayment, newFullAmount);
-//       newFullAmount -= deductionFromFull;
-//       remainingPayment -= deductionFromFull;
-
-//       if (deductionFromFull > 0) {
-//         newPaymentHistory.push({
-//           type: "fullAmount",
-//           amount: deductionFromFull,
-//           description: `Payment of RS ${deductionFromFull.toLocaleString()} deducted from Full Amount`,
-//         });
-//         paymentDescription.push(
-//           `Deducted RS ${deductionFromFull.toLocaleString()} from Full Amount`
-//         );
-//       }
-//     }
-
-//     if (remainingPayment > 0 && newExpectedProfit > 0) {
-//       const deductionFromProfit = Math.min(remainingPayment, newExpectedProfit);
-//       newExpectedProfit -= deductionFromProfit;
-
-//       if (deductionFromProfit > 0) {
-//         newPaymentHistory.push({
-//           type: "expectedProfit",
-//           amount: deductionFromProfit,
-//           description: `Payment of RS ${deductionFromProfit.toLocaleString()} deducted from Expected Profit`,
-//         });
-//         paymentDescription.push(
-//           `Deducted RS ${deductionFromProfit.toLocaleString()} from Expected Profit`
-//         );
-//       }
-//     }
-
-//     // Check if there's any payment left that couldn't be applied
-//     if (remainingPayment > 0) {
-//       return res.status(400).json({
-//         msg: `Could not apply RS ${remainingPayment.toLocaleString()} - amounts fully paid`,
-//         fullAmount: newFullAmount,
-//         expectedProfit: newExpectedProfit,
-//       });
-//     }
-
-//     // Update order status if fully paid
-//     const newStatus =
-//       newFullAmount <= 0 && newExpectedProfit <= 0 ? "completed" : order.status;
-
-//     const updatedOrder = await Order.findByIdAndUpdate(
-//       req.params.id,
-//       {
-//         fullAmount: newFullAmount,
-//         expectedProfit: newExpectedProfit,
-//         paymentHistory: newPaymentHistory,
-//         status: newStatus,
-//         adminNotes: adminNotes || order.adminNotes,
-//       },
-//       { new: true }
-//     );
-
-//     res.json({
-//       success: true,
-//       message: paymentDescription.join("\n"),
-//       order: updatedOrder,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ msg: error.message });
-//   }
-// };
-
 exports.getUserProfitSummary = async (req, res) => {
   try {
     // Get both approved and completed orders
@@ -2509,3 +2359,1011 @@ exports.deleteOrder = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
+
+
+
+
+// const Order = require("../models/Order");
+// const Post = require("../models/Post");
+// const User = require("../models/User");
+// const nodemailer = require("nodemailer");
+// const checkUserActive = require("../controllers/authController")
+
+// const getSafeOrderFields = (order) => {
+//   return {
+//     ...order,
+//     quantity: order.quantity || 1,
+//     sellingUnitPrice: order.sellingUnitPrice || order.unitPrice || 0
+//   };
+// };
+
+// const transporter = nodemailer.createTransport({
+//   service: "gmail",
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASS,
+//   },
+// });
+
+// // Test the transporter connection
+// transporter.verify((error, success) => {
+//   if (error) {
+//     console.error("SMTP Connection Error:", error);
+//   } else {
+//     console.log("SMTP Connection Ready");
+//   }
+// });
+
+// // Email sending function for payments
+// async function sendPaymentEmail(userEmail, order, paymentDetails) {
+//   const mailOptions = {
+//     from: `"Wonder Choice" <${process.env.EMAIL_USER}>`,
+//     to: userEmail,
+//     subject: `Payment Confirmation - Order #${order._id}`,
+//     html: `
+//       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+//         <h2 style="color: #4a86e8;">Payment Confirmation</h2>
+//         <p>Dear ${order.user?.username || "Customer"},</p>
+
+//         <h3 style="color: #4a86e8;">Order Details</h3>
+//         <p><strong>Product:</strong> ${order.productName}</p>
+//         <p><strong>Order ID:</strong> ${order._id}</p>
+
+//         <h3 style="color: #4a86e8;">Payment Information</h3>
+//         <table style="width: 100%; border-collapse: collapse;">
+//           <tr>
+//             <td style="padding: 8px; border: 1px solid #ddd;"><strong>Payment Amount</strong></td>
+//             <td style="padding: 8px; border: 1px solid #ddd;">Rs. ${paymentDetails.amount.toLocaleString()}</td>
+//           </tr>
+//           <tr>
+//             <td style="padding: 8px; border: 1px solid #ddd;"><strong>Payment Date</strong></td>
+//             <td style="padding: 8px; border: 1px solid #ddd;">${new Date().toLocaleString()}</td>
+//           </tr>
+//           <tr>
+//             <td style="padding: 8px; border: 1px solid #ddd;"><strong>Payment Method</strong></td>
+//             <td style="padding: 8px; border: 1px solid #ddd;">Bank Transfer</td>
+//           </tr>
+//         </table>
+
+//         <h3 style="color: #4a86e8;">Current Status</h3>
+//         <p><strong>Full Amount Paid:</strong> Rs. ${(
+//           order.originalFullAmount - order.fullAmount
+//         ).toLocaleString()}</p>
+//         <p><strong>Expected Profit Paid:</strong> Rs. ${(
+//           order.originalExpectedProfit - order.expectedProfit
+//         ).toLocaleString()}</p>
+//         <p><strong>Remaining Balance:</strong> Rs. ${(
+//           order.fullAmount + order.expectedProfit
+//         ).toLocaleString()}</p>
+
+//         <p style="margin-top: 20px;">Thank you for your payment!</p>
+//         <p>Best regards,<br>The Wonder Choice Team</p>
+//       </div>
+//     `,
+//   };
+
+//   try {
+//     await transporter.sendMail(mailOptions);
+//     console.log(`Payment confirmation email sent to ${userEmail}`);
+//   } catch (error) {
+//     console.error("Error sending payment email:", error);
+//     throw error;
+//   }
+// }
+
+// exports.processPayment = async (req, res) => {
+//   try {
+//     // const { payNow, adminNotes } = req.body;
+//     // const order = await Order.findById(req.params.id).populate(
+//     //   "user",
+//     //   "username email"
+//     // );
+
+//     // if (!order) {
+//     //   return res.status(404).json({ msg: "Order not found" });
+//     // }
+
+//     // const paymentAmount = parseFloat(payNow);
+//     // if (isNaN(paymentAmount) || paymentAmount <= 0) {
+//     //   return res.status(400).json({ msg: "Invalid payment amount" });
+//     // }
+
+//     const { payNow, adminNotes } = req.body;
+//     const order = await Order.findById(req.params.id).populate(
+//       "user",
+//       "username email"
+//     );
+
+//     if (!order) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     const paymentAmount = parseFloat(payNow);
+//     if (isNaN(paymentAmount) || paymentAmount <= 0) {
+//       return res.status(400).json({ msg: "Invalid payment amount" });
+//     }
+
+//     let newFullAmount = order.fullAmount;
+//     let newExpectedProfit = order.expectedProfit;
+//     let remainingPayment = paymentAmount;
+//     const newPaymentHistory = [...order.paymentHistory];
+//     let paymentDescription = [];
+
+//     // Process payment against full amount first
+//     if (newFullAmount > 0) {
+//       const deductionFromFull = Math.min(remainingPayment, newFullAmount);
+//       newFullAmount -= deductionFromFull;
+//       remainingPayment -= deductionFromFull;
+
+//       if (deductionFromFull > 0) {
+//         newPaymentHistory.push({
+//           type: "fullAmount",
+//           amount: deductionFromFull,
+//           description: `Payment of RS ${deductionFromFull.toLocaleString()} applied to Full Amount`,
+//           date: new Date(),
+//         });
+//         paymentDescription.push(
+//           `Deducted RS ${deductionFromFull.toLocaleString()} from Full Amount`
+//         );
+//       }
+//     }
+
+//     // Process remaining payment against expected profit
+//     if (remainingPayment > 0 && newExpectedProfit > 0) {
+//       const deductionFromProfit = Math.min(remainingPayment, newExpectedProfit);
+//       newExpectedProfit -= deductionFromProfit;
+//       remainingPayment -= deductionFromProfit;
+
+//       if (deductionFromProfit > 0) {
+//         newPaymentHistory.push({
+//           type: "expectedProfit",
+//           amount: deductionFromProfit,
+//           description: `Payment of RS ${deductionFromProfit.toLocaleString()} applied to Expected Profit`,
+//           date: new Date(),
+//         });
+//         paymentDescription.push(
+//           `Deducted RS ${deductionFromProfit.toLocaleString()} from Expected Profit`
+//         );
+//       }
+//     }
+
+//     if (remainingPayment > 0) {
+//       return res.status(400).json({
+//         success: false,
+//         msg: `Could not apply RS ${remainingPayment.toLocaleString()} - amounts fully paid`,
+//         paymentDetails: paymentDescription.join("\n"),
+//         remaining: {
+//           fullAmount: newFullAmount,
+//           expectedProfit: newExpectedProfit,
+//         },
+//       });
+//     }
+
+//     const newStatus =
+//       newFullAmount <= 0 && newExpectedProfit <= 0 ? "completed" : order.status;
+
+//     const updatedOrder = await Order.findByIdAndUpdate(
+//       req.params.id,
+//       {
+//         fullAmount: newFullAmount,
+//         expectedProfit: newExpectedProfit,
+//         paymentHistory: newPaymentHistory,
+//         status: newStatus,
+//         adminNotes: adminNotes || order.adminNotes,
+//       },
+//       { new: true }
+//     ).populate("user", "username email");
+
+//         // Send email after successful payment processing
+//     if (updatedOrder.user?.email) {
+//       try {
+//         const mailOptions = {
+//           from: `"Wonder-Choice" <${process.env.EMAIL_USER}>`,
+//           to: updatedOrder.user.email,
+//           subject: `Payment Paid - Order #${updatedOrder._id}`,
+//           html: `
+//             <div>
+//               <h2>Payment Confirmation</h2>
+//               <p>Dear ${updatedOrder.user.username},</p>
+//               <p>We've paid your payment of <strong>RS ${paymentAmount.toFixed(2)}</strong> for order ${updatedOrder.productName}.</p>
+//               <h3>Payment Details:</h3>
+//               <p>Amount: RS ${paymentAmount.toFixed(2)}</p>
+//               <p>Date: ${new Date().toLocaleString()}</p>
+//               <p>Thank you for your business!</p>
+//             </div>
+//           `,
+//         };
+
+//         await transporter.sendMail(mailOptions);
+//         console.log('Payment confirmation email sent to:', updatedOrder.user.email);
+//       } catch (emailError) {
+//         console.error('Failed to send payment email:', emailError);
+//         // Continue even if email fails
+//       }
+//     }
+
+//     res.json({
+//       success: true,
+//       message: `Payment processed successfully${updatedOrder.user?.email ? ' and email sent' : ''}`,
+//       order: updatedOrder,
+//     });
+
+
+//     // Send email confirmation
+//     // if (updatedOrder.user?.email) {
+//     //   try {
+//     //     await sendPaymentEmail(updatedOrder.user.email, updatedOrder, {
+//     //       amount: paymentAmount,
+//     //       date: new Date(),
+//     //     });
+//     //   } catch (emailError) {
+//     //     console.error("Failed to send payment email:", emailError);
+//     //     // Continue with response even if email fails
+//     //   }
+//     // }
+
+//     // res.json({
+//     //   success: true,
+//     //   message: "Payment processed successfully",
+//     //   paymentDetails: paymentDescription.join("\n"),
+//     //   order: updatedOrder,
+//     // });
+//   } catch (error) {
+//     console.error("Payment processing error:", error);
+//     res.status(500).json({
+//       success: false,
+//       msg: error.message,
+//     });
+//   }
+// };
+
+
+// exports.createOrder = [
+//   checkUserActive, // Add this middleware
+//   async (req, res) => {
+//   try {
+//     console.log("Incoming order data:", req.body);
+
+//     // Destructure all required fields from the request body
+//     const {
+//       postId,
+//       productName,
+//       unitPrice,
+//       quantity,
+//       sellingUnitPrice,
+//       fullAmount,
+//       expectedProfit,
+//       timeLine,
+//     } = req.body;
+
+//     // Validate required fields
+//     if (
+//       !postId ||
+//       !productName ||
+//       !fullAmount ||
+//       !unitPrice ||
+//       !quantity ||
+//       !sellingUnitPrice ||
+//       !expectedProfit ||
+//       !timeLine
+//     ) {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "All fields are required: postId, productName, unitPrice, quantity, sellingUnitPrice, fullAmount, expectedProfit, timeLine",
+//       });
+//     }
+
+//     // Create the new order
+//     const newOrder = new Order({
+//       productName,
+//       fullAmount: Number(fullAmount),
+//       expectedProfit: Number(expectedProfit),
+//       unitPrice: Number(unitPrice),
+//       quantity:Number(quantity),
+//       sellingUnitPrice:Number(sellingUnitPrice),
+//       post: postId,
+//       //   postFullAmount: post.fullAmount,
+//       //   postExpectedProfit: post.expectedProfit,
+//       timeLine,
+//       user: req.user.id,
+//       status: "pending",
+//       originalFullAmount: fullAmount,
+//       originalExpectedProfit: expectedProfit,
+//       paymentHistory: [],
+//     });
+
+//     // Save the order to database
+//     const savedOrder = await newOrder.save();
+
+//     // Update the associated post
+//     const updatedPost = await Post.findByIdAndUpdate(
+//       postId,
+//       {
+//         $addToSet: {
+//           investedUsers: req.user.id,
+//           // Remove user from visibleTo if they shouldn't see it anymore
+//           // Or keep them if they should still see invested posts
+//         },
+//         $pull: { visibleTo: req.user.id }, // Remove user from visibleTo
+//       },
+//       { new: true }
+//     );
+
+//     if (!updatedPost) {
+//       throw new Error("Associated post not found");
+//     }
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Order created successfully",
+//       order: savedOrder,
+//       updatedPost: updatedPost,
+//     });
+//   } catch (error) {
+//     console.error("Order creation error:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to create order",
+//       error: error.message,
+//     });
+//   }
+//   }
+// ];
+
+// // exports.createOrder = async (req, res) => {
+// //   try {
+// //     console.log("Incoming order data:", req.body);
+
+// //     // Destructure all required fields from the request body
+// //     const {
+// //       postId,
+// //       productName,
+// //       unitPrice,
+// //       quantity,
+// //       sellingUnitPrice,
+// //       fullAmount,
+// //       expectedProfit,
+// //       timeLine,
+// //     } = req.body;
+
+// //     // Validate required fields
+// //     if (
+// //       !postId ||
+// //       !productName ||
+// //       !fullAmount ||
+// //       !unitPrice ||
+// //       !quantity ||
+// //       !sellingUnitPrice ||
+// //       !expectedProfit ||
+// //       !timeLine
+// //     ) {
+// //       return res.status(400).json({
+// //         success: false,
+// //         message:
+// //           "All fields are required: postId, productName, unitPrice, quantity, sellingUnitPrice, fullAmount, expectedProfit, timeLine",
+// //       });
+// //     }
+
+// //     // Create the new order
+// //     const newOrder = new Order({
+// //       productName,
+// //       fullAmount: Number(fullAmount),
+// //       expectedProfit: Number(expectedProfit),
+// //       unitPrice: Number(unitPrice),
+// //       quantity:Number(quantity),
+// //       sellingUnitPrice:Number(sellingUnitPrice),
+// //       post: postId,
+// //       //   postFullAmount: post.fullAmount,
+// //       //   postExpectedProfit: post.expectedProfit,
+// //       timeLine,
+// //       user: req.user.id,
+// //       status: "pending",
+// //       originalFullAmount: fullAmount,
+// //       originalExpectedProfit: expectedProfit,
+// //       paymentHistory: [],
+// //     });
+
+// //     // Save the order to database
+// //     const savedOrder = await newOrder.save();
+
+// //     // Update the associated post
+// //     const updatedPost = await Post.findByIdAndUpdate(
+// //       postId,
+// //       {
+// //         $addToSet: {
+// //           investedUsers: req.user.id,
+// //           // Remove user from visibleTo if they shouldn't see it anymore
+// //           // Or keep them if they should still see invested posts
+// //         },
+// //         $pull: { visibleTo: req.user.id }, // Remove user from visibleTo
+// //       },
+// //       { new: true }
+// //     );
+
+// //     if (!updatedPost) {
+// //       throw new Error("Associated post not found");
+// //     }
+
+// //     res.status(201).json({
+// //       success: true,
+// //       message: "Order created successfully",
+// //       order: savedOrder,
+// //       updatedPost: updatedPost,
+// //     });
+// //   } catch (error) {
+// //     console.error("Order creation error:", error);
+// //     res.status(500).json({
+// //       success: false,
+// //       message: "Failed to create order",
+// //       error: error.message,
+// //     });
+// //   }
+// // };
+
+// exports.approveOrder = async (req, res) => {
+//   try {
+//     const order = await Order.findByIdAndUpdate(
+//       req.params.id,
+//       { status: "approved" },
+//       { new: true }
+//     ).populate("post");
+
+//     if (!order) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     // Update post visibility - remove all users except investor and admin
+//     if (order?.post) {
+//       await Post.findByIdAndUpdate(order.post._id, {
+//         $set: {
+//           visibleTo: [
+//             order.user,
+//             order.post.createdBy, // Admin (post creator)
+//           ],
+//         },
+//         // $addToSet: {
+//         //   investedUsers: order.user, // Add user to investedUsers
+//         // }
+//       });
+//     }
+
+//     res.json(order);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
+// // exports.getAdminOrders = async (req, res) => {
+// //   try {
+// //     const orders = await Order.find()
+// //       .populate("user", "username email")
+// //       .populate("post", "productName");
+// //     res.json(orders);
+// //   } catch (error) {
+// //     res.status(500).json({ msg: error.message });
+// //   }
+// // };
+
+// exports.getAdminOrders = async (req, res) => {
+//   try {
+//     const orders = await Order.find()
+//       .populate("user", "username email")
+//       .populate("post", "productName");
+
+//     // Apply default values to each order
+//     const safeOrders = orders.map(order => getSafeOrderFields(order.toObject()));
+    
+//     res.json(safeOrders);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
+// // Update order status
+// exports.updateOrderStatus = async (req, res) => {
+//   try {
+//     // Verify the requesting user is admin
+//     if (req.user.role !== "admin") {
+//       return res.status(403).json({ msg: "Admin privileges required" });
+//     }
+
+//     const { status } = req.body;
+//     const order = await Order.findByIdAndUpdate(
+//       req.params.id,
+//       { status, updatedAt: Date.now() },
+//       { new: true }
+//     );
+
+//     if (!order) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     res.json({
+//       success: true,
+//       order: updatedOrder,
+//     });
+//   } catch (error) {
+//     console.error("Error updating order status:", error);
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
+// exports.getUserOrders = async (req, res) => {
+//   try {
+//     const { status } = req.query;
+//     let query = { user: req.user.id };
+
+//     if (status) {
+//       query.status = status;
+//     }
+
+//     const orders = await Order.find(query)
+//       .sort({ createdAt: -1 })
+//       .select(
+//         "productName fullAmount expectedProfit unitPrice quantity sellingUnitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
+//       );
+
+//     // Apply default values to each order
+//     const safeOrders = orders.map(order => getSafeOrderFields(order.toObject()));
+    
+//     res.json(safeOrders);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
+// // exports.getUserOrders = async (req, res) => {
+// //   try {
+// //     const { status } = req.query;
+// //     let query = { user: req.user.id };
+
+// //     if (status) {
+// //       query.status = status;
+// //     }
+
+// //     const orders = await Order.find(query)
+// //       .sort({ createdAt: -1 })
+// //       .select(
+// //         "productName fullAmount expectedProfit unitPrice quantity sellingUnitPrice status createdAt updatedAt originalFullAmount originalExpectedProfit timeLine"
+// //       );
+
+// //     res.json(orders);
+// //   } catch (error) {
+// //     res.status(500).json({ msg: error.message });
+// //   }
+// // };
+
+// // Get expired orders cleanup job
+// exports.cleanExpiredOrders = async () => {
+//   const result = await Order.deleteMany({
+//     status: "pending",
+//     expiresAt: { $lt: new Date() },
+//   });
+//   console.log(`Cleaned up ${result.deletedCount} expired orders`);
+// };
+
+// // Get orders by user ID
+// exports.getOrdersByUser = async (req, res) => {
+//   try {
+//     const orders = await Order.find({
+//       user: req.params.userId,
+//     })
+//       .sort({ createdAt: -1 })
+//       .populate("post", "productName image");
+
+//     res.json(orders);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
+// // Update order
+// exports.updateOrder = async (req, res) => {
+//   try {
+//     const { status, adminNotes } = req.body;
+
+//     const updatedOrder = await Order.findByIdAndUpdate(
+//       req.params.id,
+//       {
+//         status,
+//         adminNotes,
+//         updatedAt: Date.now(),
+//       },
+//       { new: true }
+//     );
+
+//     if (!updatedOrder) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     res.json({
+//       success: true,
+//       order: updatedOrder,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
+// // Get single order
+// exports.getOrder = async (req, res) => {
+//   try {
+//     const order = await Order.findById(req.params.id)
+//       .populate("user", "username email")
+//       .populate("post", "productName image");
+
+//     if (!order) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     // Ensure default values for new fields
+//     const safeOrder = getSafeOrderFields(order.toObject());
+    
+//     res.json(safeOrder);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
+// // exports.getOrder = async (req, res) => {
+// //   try {
+// //     const order = await Order.findById(req.params.id)
+// //       .populate("user", "username email")
+// //       .populate("post", "productName image");
+
+// //     if (!order) {
+// //       return res.status(404).json({ msg: "Order not found" });
+// //     }
+
+// //     res.json(order);
+// //   } catch (error) {
+// //     res.status(500).json({ msg: error.message });
+// //   }
+// // };
+
+// exports.updateOrder = async (req, res) => {
+//   try {
+//     const { payNow, status, adminNotes } = req.body;
+//     const order = await Order.findById(req.params.id);
+
+//     if (!order) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     const updateData = {
+//       status: status || order.status,
+//       adminNotes: adminNotes || order.adminNotes,
+//     };
+
+//     // Process payment if payNow is provided
+//     if (payNow && payNow > 0) {
+//       const paymentAmount = parseFloat(payNow);
+//       let newFullAmount = order.fullAmount;
+//       let newExpectedProfit = order.expectedProfit;
+//       let remainingPayment = paymentAmount;
+//       const newPaymentHistory = [...order.paymentHistory];
+//       let paymentDescription = [];
+
+//       // First deduct from fullAmount if any remains
+//       if (newFullAmount > 0) {
+//         const deductionFromFull = Math.min(remainingPayment, newFullAmount);
+//         newFullAmount -= deductionFromFull;
+//         remainingPayment -= deductionFromFull;
+
+//         if (deductionFromFull > 0) {
+//           newPaymentHistory.push({
+//             type: "fullAmount",
+//             amount: deductionFromFull,
+//             description: `Deducted RS ${deductionFromFull.toLocaleString()} from Full Amount`,
+//           });
+//           paymentDescription.push(
+//             `Full Amount: -RS ${deductionFromFull.toLocaleString()}`
+//           );
+//         }
+//       }
+
+//       // Then deduct from expectedProfit if payment remains
+//       if (remainingPayment > 0 && newExpectedProfit > 0) {
+//         const deductionFromProfit = Math.min(
+//           remainingPayment,
+//           newExpectedProfit
+//         );
+//         newExpectedProfit -= deductionFromProfit;
+//         remainingPayment -= deductionFromProfit;
+
+//         if (deductionFromProfit > 0) {
+//           newPaymentHistory.push({
+//             type: "expectedProfit",
+//             amount: deductionFromProfit,
+//             description: `Deducted RS ${deductionFromProfit.toLocaleString()} from Expected Profit`,
+//           });
+//           paymentDescription.push(
+//             `Expected Profit: -RS ${deductionFromProfit.toLocaleString()}`
+//           );
+//         }
+//       }
+
+//       // Update the amounts
+//       updateData.fullAmount = newFullAmount;
+//       updateData.expectedProfit = newExpectedProfit;
+//       updateData.paymentHistory = newPaymentHistory;
+
+//       // Check if there's any payment left that couldn't be applied
+//       if (remainingPayment > 0) {
+//         return res.status(400).json({
+//           success: false,
+//           msg: `Could not apply RS ${remainingPayment.toLocaleString()} - amounts fully paid`,
+//           paymentDetails: paymentDescription.join("\n"),
+//           remaining: {
+//             fullAmount: newFullAmount,
+//             expectedProfit: newExpectedProfit,
+//           },
+//         });
+//       }
+
+//       // Mark as completed if all amounts are paid
+//       if (newFullAmount <= 0 && newExpectedProfit <= 0) {
+//         updateData.status = "completed";
+//       }
+//     }
+
+//     const updatedOrder = await Order.findByIdAndUpdate(
+//       req.params.id,
+//       updateData,
+//       { new: true }
+//     );
+
+//     res.json({
+//       success: true,
+//       message: "Payment processed successfully",
+//       order: updatedOrder,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       msg: error.message,
+//     });
+//   }
+// };
+
+// // Add this function to your orderController.js
+// exports.updateOrderDetails = async (req, res) => {
+//   try {
+//     const { quantity, sellingUnitPrice } = req.body;
+    
+//     const order = await Order.findById(req.params.id);
+//     if (!order) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     // Update order details
+//     const updatedOrder = await Order.findByIdAndUpdate(
+//       req.params.id,
+//       {
+//         quantity: quantity || order.quantity,
+//         sellingUnitPrice: sellingUnitPrice || order.sellingUnitPrice,
+//         updatedAt: Date.now(),
+//       },
+//       { new: true }
+//     );
+
+//     res.json({
+//       success: true,
+//       message: "Order details updated successfully",
+//       order: updatedOrder,
+//     });
+//   } catch (error) {
+//     console.error("Error updating order details:", error);
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
+// // Update order status
+// exports.updateOrderStatus = async (req, res) => {
+//   try {
+//     const { status } = req.body;
+
+//     const updatedOrder = await Order.findByIdAndUpdate(
+//       req.params.id,
+//       {
+//         status,
+//         updatedAt: Date.now(),
+//       },
+//       { new: true }
+//     );
+
+//     if (!updatedOrder) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     res.json({
+//       success: true,
+//       order: updatedOrder,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
+// // exports.processPayment = async (req, res) => {
+// //   try {
+// //     const { payNow, adminNotes } = req.body;
+// //     const order = await Order.findById(req.params.id);
+
+// //     if (!order) {
+// //       return res.status(404).json({ msg: "Order not found" });
+// //     }
+
+// //     const paymentAmount = parseFloat(payNow);
+// //     if (isNaN(paymentAmount) || paymentAmount <= 0) {
+// //       return res.status(400).json({ msg: "Invalid payment amount" });
+// //     }
+
+// //     let newFullAmount = order.fullAmount;
+// //     let newExpectedProfit = order.expectedProfit;
+// //     let remainingPayment = paymentAmount;
+// //     const newPaymentHistory = [...order.paymentHistory];
+// //     let paymentDescription = [];
+
+// //     if (newFullAmount > 0) {
+// //       const deductionFromFull = Math.min(remainingPayment, newFullAmount);
+// //       newFullAmount -= deductionFromFull;
+// //       remainingPayment -= deductionFromFull;
+
+// //       if (deductionFromFull > 0) {
+// //         newPaymentHistory.push({
+// //           type: "fullAmount",
+// //           amount: deductionFromFull,
+// //           description: `Payment of RS ${deductionFromFull.toLocaleString()} deducted from Full Amount`,
+// //         });
+// //         paymentDescription.push(
+// //           `Deducted RS ${deductionFromFull.toLocaleString()} from Full Amount`
+// //         );
+// //       }
+// //     }
+
+// //     if (remainingPayment > 0 && newExpectedProfit > 0) {
+// //       const deductionFromProfit = Math.min(remainingPayment, newExpectedProfit);
+// //       newExpectedProfit -= deductionFromProfit;
+
+// //       if (deductionFromProfit > 0) {
+// //         newPaymentHistory.push({
+// //           type: "expectedProfit",
+// //           amount: deductionFromProfit,
+// //           description: `Payment of RS ${deductionFromProfit.toLocaleString()} deducted from Expected Profit`,
+// //         });
+// //         paymentDescription.push(
+// //           `Deducted RS ${deductionFromProfit.toLocaleString()} from Expected Profit`
+// //         );
+// //       }
+// //     }
+
+// //     // Check if there's any payment left that couldn't be applied
+// //     if (remainingPayment > 0) {
+// //       return res.status(400).json({
+// //         msg: `Could not apply RS ${remainingPayment.toLocaleString()} - amounts fully paid`,
+// //         fullAmount: newFullAmount,
+// //         expectedProfit: newExpectedProfit,
+// //       });
+// //     }
+
+// //     // Update order status if fully paid
+// //     const newStatus =
+// //       newFullAmount <= 0 && newExpectedProfit <= 0 ? "completed" : order.status;
+
+// //     const updatedOrder = await Order.findByIdAndUpdate(
+// //       req.params.id,
+// //       {
+// //         fullAmount: newFullAmount,
+// //         expectedProfit: newExpectedProfit,
+// //         paymentHistory: newPaymentHistory,
+// //         status: newStatus,
+// //         adminNotes: adminNotes || order.adminNotes,
+// //       },
+// //       { new: true }
+// //     );
+
+// //     res.json({
+// //       success: true,
+// //       message: paymentDescription.join("\n"),
+// //       order: updatedOrder,
+// //     });
+// //   } catch (error) {
+// //     res.status(500).json({ msg: error.message });
+// //   }
+// // };
+
+// exports.getUserProfitSummary = async (req, res) => {
+//   try {
+//     // Get both approved and completed orders
+//     const orders = await Order.find({
+//       user: req.user.id,
+//       status: { $in: ["approved", "completed"] }, // Include both approved and completed orders
+//     })
+//       .select(
+//         "fullAmount expectedProfit originalFullAmount originalExpectedProfit status paymentHistory"
+//       )
+//       .lean();
+
+//     const summary = orders.reduce(
+//       (acc, order) => {
+//         if (order.status === "completed") {
+//           // For completed orders, add the full original expected profit
+//           acc.totalPaid += order.originalExpectedProfit;
+//           acc.completedOrders += 1;
+//         } else if (order.status === "approved") {
+//           // For approved orders, calculate how much has been paid so far
+//           const paidProfit =
+//             order.originalExpectedProfit - order.expectedProfit;
+//           acc.totalPaid += paidProfit;
+//           acc.totalRemaining += order.expectedProfit;
+//           acc.activeOrders += 1;
+//         }
+
+//         // Calculate payment history total if available
+//         if (order.paymentHistory && order.paymentHistory.length > 0) {
+//           const profitPayments = order.paymentHistory.filter(
+//             (payment) => payment.type === "expectedProfit"
+//           );
+//           const paidFromHistory = profitPayments.reduce(
+//             (sum, payment) => sum + payment.amount,
+//             0
+//           );
+//           acc.totalPaidFromHistory =
+//             (acc.totalPaidFromHistory || 0) + paidFromHistory;
+//         }
+
+//         acc.totalOrders += 1;
+//         return acc;
+//       },
+//       {
+//         totalOrders: 0,
+//         completedOrders: 0,
+//         activeOrders: 0,
+//         totalPaid: 0,
+//         totalRemaining: 0,
+//         totalPaidFromHistory: 0, // Optional: track payments from history
+//       }
+//     );
+
+//     // If you want to prioritize payment history data over calculated difference
+//     // summary.totalPaid = summary.totalPaidFromHistory || summary.totalPaid;
+
+//     res.json({
+//       success: true,
+//       data: {
+//         totalPaid: summary.totalPaid,
+//         totalRemaining: summary.totalRemaining,
+//         totalOrders: summary.totalOrders,
+//         completedOrders: summary.completedOrders,
+//         activeOrders: summary.activeOrders,
+//       },
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to calculate profit summary",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// exports.deleteOrder = async (req, res) => {
+//   try {
+//     // Verify the requesting user is admin
+//     if (req.user.role !== "admin") {
+//       return res.status(403).json({ msg: "Admin privileges required" });
+//     }
+
+//     const order = await Order.findByIdAndDelete(req.params.id);
+
+//     if (!order) {
+//       return res.status(404).json({ msg: "Order not found" });
+//     }
+
+//     res.json({ success: true, message: "Order deleted successfully" });
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };

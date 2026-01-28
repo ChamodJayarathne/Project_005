@@ -838,16 +838,38 @@ const loginUser = async (req, res) => {
 
 
 
-
 // Get all users (admin only)
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({}, "-password");
+    // Select all fields except sensitive ones
+    const users = await User.find({})
+      .select('-password -plainPassword')
+      .sort({ createdAt: -1 }); // Sort by newest first
+    
+    console.log(`Retrieved ${users.length} users`);
+    
+    // Log each user's isActive status for debugging
+    users.forEach(user => {
+      console.log(`User ${user.username} (${user._id}) - isActive: ${user.isActive}`);
+    });
+    
     res.json(users);
   } catch (error) {
+    console.error("Error fetching users:", error);
     res.status(500).json({ msg: error.message });
   }
 };
+
+
+// Get all users (admin only)
+// const getAllUsers = async (req, res) => {
+//   try {
+//     const users = await User.find({}, "-password");
+//     res.json(users);
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
 
 
 
@@ -864,9 +886,88 @@ const getUserById = async (req, res) => {
 };
 
 // Modified updateUser function
+// const updateUser = async (req, res) => {
+//   try {
+//     const { username, email, password, role, phoneNumber } = req.body;
+//     const user = await User.findById(req.params.id);
+
+//     if (!user) return res.status(404).json({ msg: "User not found" });
+
+//     // Email format validation if email is being updated
+//     if (email && email !== user.email) {
+//       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//       if (!emailRegex.test(email)) {
+//         return res
+//           .status(400)
+//           .json({ msg: "Please provide a valid email address" });
+//       }
+//     }
+
+//     // Phone number validation if phoneNumber is being updated
+//     if (phoneNumber && phoneNumber !== user.phoneNumber) {
+//       const phoneRegex = /^\+[1-9]\d{1,14}$/;
+//       if (!phoneRegex.test(phoneNumber)) {
+//         return res
+//           .status(400)
+//           .json({ msg: "Please provide a valid international phone number" });
+//       }
+//     }
+
+//     // Prevent creating new admins via update
+//     if (role === "admin" && user.role !== "admin") {
+//       const adminExists = await User.exists({
+//         role: "admin",
+//         _id: { $ne: user._id },
+//       });
+//       if (adminExists) {
+//         return res.status(400).json({
+//           msg: "Cannot assign admin role. Only one admin allowed in system",
+//         });
+//       }
+//     }
+
+//     // Check for existing username or email (excluding current user)
+//     if (username || email) {
+//       const existingUser = await User.findOne({
+//         $or: [
+//           ...(username ? [{ username }] : []),
+//           ...(email ? [{ email }] : []),
+//         ],
+//         _id: { $ne: user._id },
+//       });
+
+//       if (existingUser) {
+//         return res
+//           .status(400)
+//           .json({ msg: "Username or email already exists" });
+//       }
+//     }
+
+//     // Update user with password hashing if provided
+//     const updateData = { username, email, role, phoneNumber };
+
+//     if (password && password.trim() !== "") {
+//       const salt = await bcrypt.genSalt(8);
+//       updateData.password = await bcrypt.hash(password, salt);
+//     }
+
+//     const updatedUser = await User.findByIdAndUpdate(
+//       req.params.id,
+//       updateData,
+//       { new: true, runValidators: true }
+//     );
+
+//     res.json({ msg: "User updated successfully" });
+
+    
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
+
 const updateUser = async (req, res) => {
   try {
-    const { username, email, password, role, phoneNumber } = req.body;
+    const { username, email, password, role, phoneNumber, isActive } = req.body;
     const user = await User.findById(req.params.id);
 
     if (!user) return res.status(404).json({ msg: "User not found" });
@@ -921,13 +1022,28 @@ const updateUser = async (req, res) => {
       }
     }
 
-    // Update user with password hashing if provided
-    const updateData = { username, email, role, phoneNumber };
+    // Update user data
+    const updateData = { 
+      username: username || user.username,
+      email: email || user.email, 
+      role: role || user.role, 
+      phoneNumber: phoneNumber || user.phoneNumber
+    };
+    
+    // Add isActive field if provided (allow setting to false)
+    if (isActive !== undefined) {
+      updateData.isActive = isActive;
+      console.log(`Setting user ${user._id} isActive to: ${isActive}`);
+    }
 
+    // Handle password update
     if (password && password.trim() !== "") {
       const salt = await bcrypt.genSalt(8);
       updateData.password = await bcrypt.hash(password, salt);
     }
+
+    // Log the update for debugging
+    console.log(`Updating user ${req.params.id} with data:`, updateData);
 
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
@@ -935,13 +1051,103 @@ const updateUser = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    res.json({ msg: "User updated successfully" });
+    console.log(`User updated successfully. New status: isActive = ${updatedUser.isActive}`);
 
+    res.json({ 
+      msg: "User updated successfully",
+      user: updatedUser 
+    });
     
   } catch (error) {
-    res.status(500).json({ msg: error.message });
+    console.error("Error updating user:", error);
+    res.status(500).json({ 
+      msg: error.message,
+      details: error.errors || "Internal server error"
+    });
   }
 };
+
+// const updateUser = async (req, res) => {
+//   try {
+//     const { username, email, password, role, phoneNumber, isActive } = req.body; // Added isActive
+//     const user = await User.findById(req.params.id);
+
+//     if (!user) return res.status(404).json({ msg: "User not found" });
+
+//     // Email format validation if email is being updated
+//     if (email && email !== user.email) {
+//       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//       if (!emailRegex.test(email)) {
+//         return res
+//           .status(400)
+//           .json({ msg: "Please provide a valid email address" });
+//       }
+//     }
+
+//     // Phone number validation if phoneNumber is being updated
+//     if (phoneNumber && phoneNumber !== user.phoneNumber) {
+//       const phoneRegex = /^\+[1-9]\d{1,14}$/;
+//       if (!phoneRegex.test(phoneNumber)) {
+//         return res
+//           .status(400)
+//           .json({ msg: "Please provide a valid international phone number" });
+//       }
+//     }
+
+//     // Prevent creating new admins via update
+//     if (role === "admin" && user.role !== "admin") {
+//       const adminExists = await User.exists({
+//         role: "admin",
+//         _id: { $ne: user._id },
+//       });
+//       if (adminExists) {
+//         return res.status(400).json({
+//           msg: "Cannot assign admin role. Only one admin allowed in system",
+//         });
+//       }
+//     }
+
+//     // Check for existing username or email (excluding current user)
+//     if (username || email) {
+//       const existingUser = await User.findOne({
+//         $or: [
+//           ...(username ? [{ username }] : []),
+//           ...(email ? [{ email }] : []),
+//         ],
+//         _id: { $ne: user._id },
+//       });
+
+//       if (existingUser) {
+//         return res
+//           .status(400)
+//           .json({ msg: "Username or email already exists" });
+//       }
+//     }
+
+//     // Update user with password hashing if provided
+//     const updateData = { username, email, role, phoneNumber };
+    
+//     // Add isActive field if provided
+//     if (isActive !== undefined) {
+//       updateData.isActive = isActive;
+//     }
+
+//     if (password && password.trim() !== "") {
+//       const salt = await bcrypt.genSalt(8);
+//       updateData.password = await bcrypt.hash(password, salt);
+//     }
+
+//     const updatedUser = await User.findByIdAndUpdate(
+//       req.params.id,
+//       updateData,
+//       { new: true, runValidators: true }
+//     );
+
+//     res.json({ msg: "User updated successfully" });
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
 
 const changePassword = async (req, res) => {
   try {
@@ -1006,10 +1212,66 @@ const getCurrentUser = async (req, res) => {
       role: user.role,
       phoneNumber: user.phoneNumber,
       profileImage: user.profileImage,
+       isActive: user.isActive,
     });
   } catch (error) {
     console.error("Current user error:", error);
     res.status(500).json({ msg: error.message });
+  }
+};
+
+// Toggle user status (enable/disable)
+const toggleUserStatus = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { isActive } = req.body;
+
+    console.log(`Toggling user ${userId} status to: ${isActive}`);
+
+    // Validate input
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ 
+        msg: "Invalid status value. Must be true or false." 
+      });
+    }
+
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Prevent disabling admin accounts
+    if (user.role === 'admin' && !isActive) {
+      return res.status(400).json({ 
+        msg: "Cannot disable admin account" 
+      });
+    }
+
+    // Update only the isActive field
+    user.isActive = isActive;
+    await user.save();
+
+    console.log(`User ${userId} status updated to: ${user.isActive}`);
+
+    res.json({
+      success: true,
+      msg: `Account ${isActive ? 'enabled' : 'disabled'} successfully`,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive
+      }
+    });
+
+  } catch (error) {
+    console.error("Error toggling user status:", error);
+    res.status(500).json({ 
+      success: false,
+      msg: error.message 
+    });
   }
 };
 
@@ -1023,6 +1285,7 @@ module.exports = {
   changePassword,
   deleteUser,
   getCurrentUser,
+  toggleUserStatus
   //   googleAuthCallback,
   // checkGoogleAuthStatus,
 };
