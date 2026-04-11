@@ -39,7 +39,7 @@
 //     const savedUser = localStorage.getItem("user");
 //     return savedUser ? JSON.parse(savedUser) : null;
 //   });
-  
+
 //   const navigate = useNavigate();
 //   const location = useLocation();
 //   const baseUrl = import.meta.env.VITE_API_BASE_URI;
@@ -282,6 +282,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import AdminDashboard from "./components/AdminDashboard";
 import UserDashboard from "./pages/UserDashboard";
+import LandingPage from "./pages/LandingPage";
 import GuestHome from "./components/GuestHome";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./components/Dashboard";
@@ -300,6 +301,8 @@ import PostDetails from "./components/admin/PostDetails";
 import AdminSummary from "./components/admin/AdminSummary";
 import { RefreshProvider } from "./context/RefreshContext";
 import AuthCallback from "./components/AuthCallback";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 
 export default function App() {
   // const [user, setUser] = useState(null);
@@ -312,7 +315,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const baseUrl = import.meta.env.VITE_API_BASE_URI;
-    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -360,80 +363,83 @@ export default function App() {
   };
 
   return (
-        <GoogleOAuthProvider clientId={googleClientId}>
-    <>
-      <Navbar user={user} onLogout={handleLogout} />
-      <RefreshProvider>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<GuestHome />} />
-          <Route
-            path="/login"
-            element={
-              user ? (
-                <Navigate to={`/${user.role}`} />
-              ) : (
-                <Login setUser={setUser} />
-              )
-            }
-          />
-          <Route path="/register" element={<Register setUser={setUser}/>} />
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <>
+        <Navbar user={user} onLogout={handleLogout} />
+        <RefreshProvider>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<GuestHome />} />
+            {/* <Route path="/landing" element={<LandingPage />} /> */}
+            <Route
+              path="/login"
+              element={
+                user ? (
+                  <Navigate to={`/${user.role}`} />
+                ) : (
+                  <Login setUser={setUser} />
+                )
+              }
+            />
+            <Route path="/register" element={<Register setUser={setUser} />} />
 
-          {/* Admin Routes */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute user={user} allowedRoles={["admin"]}>
-                <AdminLayout onLogout={handleLogout} />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="add-post" element={<AddNewPost />} />
-            <Route path="accounts" element={<Accounts />} />
-            <Route path="posts/:postId" element={<PostDetails />} />
-            <Route path="posts/edit/:postId" element={<EditPost />} />
-            <Route path="orders" element={<AdminOrders />} />
-            <Route path="orders/:orderId" element={<OrderDetail />} />
-            <Route path="users/:userId" element={<UserDetail />} />
-            <Route path="users/create" element={<UserForm />} />
-            <Route path="users/:userId/edit" element={<UserForm />} />
-            <Route path="summary" element={<AdminSummary />} />
-          </Route>
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute user={user} allowedRoles={["admin"]}>
+                  <AdminLayout onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="add-post" element={<AddNewPost />} />
+              <Route path="accounts" element={<Accounts />} />
+              <Route path="posts/:postId" element={<PostDetails />} />
+              <Route path="posts/edit/:postId" element={<EditPost />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="orders/:orderId" element={<OrderDetail />} />
+              <Route path="users/:userId" element={<UserDetail />} />
+              <Route path="users/create" element={<UserForm />} />
+              <Route path="users/:userId/edit" element={<UserForm />} />
+              <Route path="summary" element={<AdminSummary />} />
+            </Route>
 
-          {/* User Routes */}
-          <Route
-            path="/user"
-            element={
-              <ProtectedRoute user={user} allowedRoles={["user"]}>
-                <Dashboard user={user} onLogout={handleLogout} />
-              </ProtectedRoute>
-            }
-          />
+            {/* User Routes */}
+            <Route
+              path="/user"
+              element={
+                <ProtectedRoute user={user} allowedRoles={["user"]}>
+                  <Dashboard user={user} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/home"
-            element={
-              <ProtectedRoute user={user} allowedRoles={["user"]}>
-                <UserDashboard user={user} onLogout={handleLogout} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/my-orders"
-            element={
-              <ProtectedRoute user={user} allowedRoles={["user"]}>
-                <MyOrders />
-              </ProtectedRoute>
-            }
-          />
-<Route path="/auth/callback" element={<AuthCallback />} />
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </RefreshProvider>
-      <Footer user={user} onLogout={handleLogout} />
-    </>
+            <Route
+              path="/home"
+              element={
+                <ProtectedRoute user={user} allowedRoles={["user"]}>
+                  <UserDashboard user={user} onLogout={handleLogout} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-orders"
+              element={
+                <ProtectedRoute user={user} allowedRoles={["user"]}>
+                  <MyOrders />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </RefreshProvider>
+        <Footer user={user} onLogout={handleLogout} />
+      </>
     </GoogleOAuthProvider>
   );
 }

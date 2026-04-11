@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import logo from "../assets/img/Logo.jpg";
+import logo from "../assets/img/Logo.jpeg";
 
 function Navbar({ user, onLogout }) {
   const location = useLocation();
@@ -17,8 +17,8 @@ function Navbar({ user, onLogout }) {
   }
 
   return (
-    <div className="bg-[#03112B] sticky top-0 z-50 shadow-md">
-      <header className="mx-auto max-w-7xl px-4 py-4 md:py-5">
+    <div className="bg-[#03112B] sticky top-0  z-50 shadow-md">
+      <header className="mx-auto md:max-w-7xl px-4 py-4 md:py-5">
         <div className="flex justify-between items-center">
           {/* Logo */}
           <h2 className="text-xl md:text-2xl font-bold m-0">
@@ -38,22 +38,20 @@ function Navbar({ user, onLogout }) {
                   <>
                     <Link
                       to="/home"
-                      className={`${
-                        window.location.pathname === "/home"
-                          ? "text-blue-300"
-                          : "text-white hover:text-blue-300"
-                      }`}
+                      className={`${window.location.pathname === "/home"
+                        ? "text-blue-300"
+                        : "text-white hover:text-blue-300"
+                        }`}
                     >
                       Home
                     </Link>
 
                     <Link
                       to="/my-orders"
-                      className={`${
-                        window.location.pathname === "/my-orders"
-                          ? "text-blue-300"
-                          : "text-white hover:text-blue-300"
-                      }`}
+                      className={`${window.location.pathname === "/my-orders"
+                        ? "text-blue-300"
+                        : "text-white hover:text-blue-300"
+                        }`}
                     >
                       My Orders
                     </Link>
@@ -61,12 +59,11 @@ function Navbar({ user, onLogout }) {
                 )}
                 <Link
                   to={user.role === "admin" ? "/admin" : "/user"}
-                  className={`${
-                    window.location.pathname ===
+                  className={`${window.location.pathname ===
                     (user.role === "admin" ? "/admin" : "/user")
-                      ? "text-blue-300"
-                      : "text-white hover:text-blue-300"
-                  }`}
+                    ? "text-blue-300"
+                    : "text-white hover:text-blue-300"
+                    }`}
                 >
                   Dashboard
                 </Link>
@@ -164,11 +161,11 @@ function Navbar({ user, onLogout }) {
                       to="/home"
                       className="block text-white font-medium hover:text-blue-300 py-2 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
-                      // className={`${
-                      //   window.location.pathname === "/home"
-                      //     ? "text-blue-300"
-                      //     : "text-white hover:text-blue-300"
-                      // }`}
+                    // className={`${
+                    //   window.location.pathname === "/home"
+                    //     ? "text-blue-300"
+                    //     : "text-white hover:text-blue-300"
+                    // }`}
                     >
                       Home
                     </Link>
@@ -206,8 +203,8 @@ function Navbar({ user, onLogout }) {
             {!user && (
               <>
                 <nav className="mt-4 pb-4 grid  space-y-3 md:hidden">
-             
-       <Link
+
+                  <Link
                     to="/"
                     className="text-white font-medium hover:text-blue-300 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
@@ -222,8 +219,8 @@ function Navbar({ user, onLogout }) {
                     Login
                   </Link>
 
-                
-           
+
+
                 </nav>
               </>
               // <Link

@@ -16,7 +16,9 @@ import {
   FiShoppingCart,
 } from "react-icons/fi";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
+import { addLetterhead } from "../../utils/pdfHelper";
+import logo from "../../assets/img/Logo.jpeg";
 
 export default function OrderDetail() {
   const { orderId } = useParams();
@@ -40,49 +42,49 @@ export default function OrderDetail() {
   const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
   // In OrderDetail.js, update the useEffect
-useEffect(() => {
-  const fetchOrder = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `${baseUrl}/api/protected/orders/${orderId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+  useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `${baseUrl}/api/protected/orders/${orderId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        // Ensure default values on frontend too
+        const orderData = response.data;
+        const safeOrder = {
+          ...orderData,
+          quantity: orderData.quantity || 1,
+          sellingUnitPrice: orderData.sellingUnitPrice || orderData.unitPrice || 0
+        };
+
+        setOrder(safeOrder);
+        setFormData({
+          status: safeOrder.status,
+          adminNotes: safeOrder.adminNotes || "",
+          payNow: "",
+          fullAmount: safeOrder.fullAmount,
+          expectedProfit: safeOrder.expectedProfit,
+          unitPrice: safeOrder.unitPrice,
+          quantity: safeOrder.quantity.toString(),
+          sellingUnitPrice: safeOrder.sellingUnitPrice
+        });
+
+        if (safeOrder.paymentHistory) {
+          setPaymentHistory(safeOrder.paymentHistory);
         }
-      );
-      
-      // Ensure default values on frontend too
-      const orderData = response.data;
-      const safeOrder = {
-        ...orderData,
-        quantity: orderData.quantity || 1,
-        sellingUnitPrice: orderData.sellingUnitPrice || orderData.unitPrice || 0
-      };
-      
-      setOrder(safeOrder);
-      setFormData({
-        status: safeOrder.status,
-        adminNotes: safeOrder.adminNotes || "",
-        payNow: "",
-        fullAmount: safeOrder.fullAmount,
-        expectedProfit: safeOrder.expectedProfit,
-        unitPrice: safeOrder.unitPrice,
-        quantity: safeOrder.quantity.toString(),
-        sellingUnitPrice: safeOrder.sellingUnitPrice
-      });
-
-      if (safeOrder.paymentHistory) {
-        setPaymentHistory(safeOrder.paymentHistory);
+      } catch (err) {
+        setError(err.response?.data?.msg || "Failed to fetch order");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.response?.data?.msg || "Failed to fetch order");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchOrder();
-}, [orderId]);
+    fetchOrder();
+  }, [orderId]);
 
   // useEffect(() => {
   //   const fetchOrder = async () => {
@@ -144,7 +146,7 @@ useEffect(() => {
     if (/^\d*\.?\d*$/.test(value) || value === "") {
       const updatedFormData = { ...formData, [name]: value };
       setFormData(updatedFormData);
-      
+
       // Recalculate auto payment if in auto mode
       if (paymentMode === "auto") {
         const autoAmount = calculateAutoPayment(updatedFormData);
@@ -186,9 +188,9 @@ useEffect(() => {
       }
 
       // First, update order details if needed
-      if (paymentMode === "auto" && (formData.quantity !== order.quantity.toString() || 
-          parseFloat(formData.sellingUnitPrice) !== order.sellingUnitPrice)) {
-        
+      if (paymentMode === "auto" && (formData.quantity !== order.quantity.toString() ||
+        parseFloat(formData.sellingUnitPrice) !== order.sellingUnitPrice)) {
+
         await axios.put(
           `${baseUrl}/api/protected/orders/${orderId}`,
           {
@@ -254,7 +256,84 @@ useEffect(() => {
     if (!order) return;
 
     const doc = new jsPDF();
-    // ... (keep your existing PDF generation code)
+    const margin = 15;
+
+    // Use standard letterhead
+    const startY = addLetterhead(doc, `Order Details - #${order._id}`, logo);
+    let yPos = startY;
+
+    // Add order information
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Product Name: ${order.productName}`, margin, yPos);
+    yPos += 10;
+    doc.text(`Status: ${order.status.toUpperCase()}`, margin, yPos);
+    yPos += 10;
+    doc.text(`Created: ${new Date(order.createdAt).toLocaleString()}`, margin, yPos);
+    yPos += 15;
+
+    // Add payment summary
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Summary", margin, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const summaryRows = [
+      ["Original Full Amount", `RS. ${order.originalFullAmount?.toLocaleString()}`],
+      ["Original Expected Profit", `RS. ${order.originalExpectedProfit?.toLocaleString()}`],
+      ["Full Amount Remaining", `RS. ${order.fullAmount?.toLocaleString()}`],
+      ["Expected Profit Remaining", `RS. ${order.expectedProfit?.toLocaleString()}`],
+      ["Total Paid", `RS. ${totalPaid.toLocaleString()}`],
+    ];
+
+    autoTable(doc, {
+      startY: yPos,
+      body: summaryRows,
+      theme: "plain",
+      margin: { left: margin },
+      styles: { fontSize: 10, cellPadding: 2 },
+    });
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // Add payment history table
+    if (paymentHistory.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Payment History", margin, yPos);
+      yPos += 5;
+
+      const tableData = paymentHistory.map((payment) => [
+        new Date(payment.date).toLocaleString(),
+        payment.type === "fullAmount" ? "Full Amount" : "Expected Profit",
+        `RS. ${payment.amount.toLocaleString()}`,
+        payment.description,
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Date", "Type", "Amount", "Description"]],
+        body: tableData,
+        theme: "grid",
+        margin: { left: margin },
+        headStyles: { fillColor: [40, 53, 147] },
+      });
+      yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Add admin notes if available
+    if (order.adminNotes) {
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Admin Notes", margin, yPos);
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const splitNotes = doc.splitTextToSize(order.adminNotes, 180);
+      doc.text(splitNotes, margin, yPos);
+    }
+
     doc.save(`order_${order._id}.pdf`);
   };
 
@@ -389,7 +468,7 @@ useEffect(() => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -449,7 +528,7 @@ useEffect(() => {
                 <h3 className="font-medium text-gray-700 mb-3">
                   Payment Processing
                 </h3>
-                
+
                 {/* Payment Mode Selection */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -459,11 +538,10 @@ useEffect(() => {
                     <button
                       type="button"
                       onClick={() => handlePaymentModeChange("auto")}
-                      className={`flex-1 py-2 px-4 rounded-md text-center ${
-                        paymentMode === "auto"
+                      className={`flex-1 py-2 px-4 rounded-md text-center ${paymentMode === "auto"
                           ? "bg-blue-600 text-white"
                           : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
+                        }`}
                     >
                       <FiShoppingCart className="inline mr-2" />
                       Auto Calculate
@@ -471,11 +549,10 @@ useEffect(() => {
                     <button
                       type="button"
                       onClick={() => handlePaymentModeChange("manual")}
-                      className={`flex-1 py-2 px-4 rounded-md text-center ${
-                        paymentMode === "manual"
+                      className={`flex-1 py-2 px-4 rounded-md text-center ${paymentMode === "manual"
                           ? "bg-blue-600 text-white"
                           : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
+                        }`}
                     >
                       <FiDollarSign className="inline mr-2" />
                       Manual Entry
@@ -495,8 +572,8 @@ useEffect(() => {
                       onChange={handlePaymentChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholder={
-                        paymentMode === "auto" 
-                          ? "Auto-calculated amount" 
+                        paymentMode === "auto"
+                          ? "Auto-calculated amount"
                           : "Enter payment amount"
                       }
                       disabled={paymentMode === "auto"}
@@ -638,15 +715,14 @@ useEffect(() => {
                   <p>
                     <span className="font-medium">Status:</span>
                     <span
-                      className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                        order.status === "approved"
+                      className={`ml-2 px-2 py-1 text-xs rounded-full ${order.status === "approved"
                           ? "bg-green-100 text-green-800"
                           : order.status === "rejected"
-                          ? "bg-red-100 text-red-800"
-                          : order.status === "completed"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
+                            ? "bg-red-100 text-red-800"
+                            : order.status === "completed"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-yellow-100 text-yellow-800"
+                        }`}
                     >
                       {order.status.toUpperCase()}
                     </span>
@@ -698,9 +774,8 @@ useEffect(() => {
                         <td className="px-4 py-2 whitespace-nowrap">
                           <div className="w-full bg-gray-200 rounded-full h-2.5">
                             <div
-                              className={`h-2.5 rounded-full ${
-                                item.remaining === 0 ? "bg-green-500" : "bg-blue-500"
-                              }`}
+                              className={`h-2.5 rounded-full ${item.remaining === 0 ? "bg-green-500" : "bg-blue-500"
+                                }`}
                               style={{
                                 width: `${(item.paid / item.original) * 100}%`,
                               }}

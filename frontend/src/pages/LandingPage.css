@@ -1,0 +1,343 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+:root {
+  --lp-bg: #0a0a0b;
+  --lp-card-bg: #141417;
+  --lp-sidebar-bg: #121214;
+  --lp-text-primary: #ffffff;
+  --lp-text-secondary: #909095;
+  --lp-accent-orange: #ff9800;
+  --lp-accent-blue: #00e5ff;
+  --lp-accent-blue-deep: #283593;
+  --lp-border: #1f1f23;
+  --lp-font-main: 'Outfit', sans-serif;
+}
+
+.landing-page-container {
+  background-color: var(--lp-bg);
+  color: var(--lp-text-primary);
+  font-family: var(--lp-font-main);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Header */
+.lp-header {
+  background-color: var(--lp-bg);
+  border-bottom: 1px solid var(--lp-border);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.lp-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.lp-logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.lp-nav-links {
+  display: flex;
+  gap: 2rem;
+}
+
+.lp-nav-links a {
+  color: var(--lp-text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.lp-nav-links a:hover {
+  color: var(--lp-accent-blue);
+}
+
+.lp-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.lp-login-link {
+  color: white;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.lp-phone {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--lp-text-secondary);
+}
+
+.lp-user-cart {
+  background-color: var(--lp-accent-orange);
+  color: black;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.lp-search-btn {
+  background-color: var(--lp-accent-orange);
+  padding: 0.5rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Layout */
+.lp-main-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 72px);
+}
+
+/* Sidebar */
+.lp-sidebar {
+  background-color: var(--lp-sidebar-bg);
+  border-right: 1px solid var(--lp-border);
+  padding: 1rem 0;
+}
+
+.lp-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.8rem;
+  color: var(--lp-text-secondary);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--lp-border);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lp-sidebar-item:hover {
+  background-color: var(--lp-card-bg);
+  color: white;
+}
+
+.lp-sidebar-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* Hero Section */
+.lp-hero {
+  padding: 2rem;
+  background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, var(--lp-bg) 70%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.lp-hero-graphic {
+  max-width: 800px;
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.lp-hero-dots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.lp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #333;
+}
+
+.lp-dot.active {
+  background-color: var(--lp-accent-orange);
+}
+
+/* Product Section */
+.lp-section-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 3rem 0;
+  font-weight: 700;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+}
+
+.lp-tag {
+  background-color: var(--lp-accent-orange);
+  color: black;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.8rem;
+}
+
+.lp-product-grid {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 0 2rem;
+}
+
+.lp-product-card {
+  background-color: var(--lp-card-bg);
+  width: 320px;
+  border: 1px solid var(--lp-border);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s;
+}
+
+.lp-product-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--lp-accent-blue);
+}
+
+.lp-card-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: var(--lp-accent-orange);
+  color: black;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.lp-card-image {
+  width: 100%;
+  height: 200px;
+  object-fit: contain;
+  padding: 1rem;
+}
+
+.lp-card-info {
+  padding: 1.5rem;
+  text-align: center;
+  border-top: 1px solid var(--lp-border);
+}
+
+.lp-card-title {
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+  height: 2.8rem;
+  overflow: hidden;
+}
+
+.lp-card-category {
+  color: var(--lp-accent-orange);
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.lp-card-price {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.lp-stock-status {
+  display: inline-block;
+  color: var(--lp-accent-orange);
+  border: 1px solid var(--lp-accent-orange);
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  margin-top: 1rem;
+}
+
+/* Awards */
+.lp-awards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  padding: 4rem 2rem;
+}
+
+.lp-award-item {
+  text-align: center;
+}
+
+.lp-award-image {
+  width: 100%;
+  max-width: 180px;
+  margin-bottom: 1rem;
+}
+
+.lp-award-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+/* Service Banner */
+.lp-service-banner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 2rem 0;
+}
+
+.lp-service-item {
+  background-color: var(--lp-accent-orange);
+  color: black;
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-right: 1px solid rgba(0,0,0,0.1);
+}
+
+.lp-service-icon {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.lp-service-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.lp-service-desc {
+  font-size: 0.75rem;
+  max-width: 250px;
+  opacity: 0.8;
+}
+
+.lp-conditions {
+  font-size: 0.6rem;
+  margin-top: 1rem;
+  opacity: 0.8;
+}
+
+@media (max-width: 1024px) {
+  .lp-main-layout {
+    grid-template-columns: 1fr;
+  }
+  .lp-sidebar {
+    display: none;
+  }
+}

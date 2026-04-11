@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { addLetterhead } from "../utils/pdfHelper";
+import logo from "../assets/img/Logo.jpeg";
 
 function MyOrders() {
   const [orders, setOrders] = useState([]);
@@ -33,30 +35,10 @@ function MyOrders() {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const margin = 15;
-    let yPos = 20;
 
-    // Add title and date
-    doc.setFontSize(20);
-    doc.setTextColor(40, 53, 147); // Dark blue
-    doc.text("My Orders Report", pageWidth / 2, yPos, {
-      align: "center",
-    });
-    yPos += 10;
-
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(
-      `Generated on: ${new Date().toLocaleString()}`,
-      pageWidth - margin,
-      yPos,
-      { align: "right" }
-    );
-    yPos += 15;
-
-    // Add a horizontal line
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 15;
+    // Use standard letterhead
+    const startY = addLetterhead(doc, "My Orders Report", logo);
+    let yPos = startY;
 
     // Orders table
     if (orders.length > 0) {
@@ -159,13 +141,12 @@ function MyOrders() {
                   RS.{order.originalExpectedProfit}
                 </td>
                 <td
-                  className={`py-2 px-4 border ${
-                    order.status === "approved"
+                  className={`py-2 px-4 border ${order.status === "approved"
                       ? "text-green-600"
                       : order.status === "rejected"
-                      ? "text-red-600"
-                      : "text-yellow-600"
-                  }`}
+                        ? "text-red-600"
+                        : "text-yellow-600"
+                    }`}
                 >
                   {order.status.toUpperCase()}
                 </td>

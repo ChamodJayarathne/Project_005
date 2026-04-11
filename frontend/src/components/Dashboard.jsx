@@ -3,9 +3,11 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import OrderSummary from "../components/OrderSummary";
 import item1 from "../assets/img/Item.jpg";
-import { FiDollarSign, FiFileText,FiAlertCircle  } from "react-icons/fi";
+import { FiDollarSign, FiFileText, FiAlertCircle } from "react-icons/fi";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { addLetterhead } from "../utils/pdfHelper";
+import logo from "../assets/img/Logo.jpeg";
 
 function Dashboard({ user, onLogout }) {
   const [userData, setUserData] = useState(user);
@@ -29,7 +31,7 @@ function Dashboard({ user, onLogout }) {
 
   const baseUrl = import.meta.env.VITE_API_BASE_URI;
 
- 
+
 
   const fetchProfitSummary = async () => {
     try {
@@ -40,7 +42,7 @@ function Dashboard({ user, onLogout }) {
       );
 
 
-  
+
       setProfitSummary(response.data.data);
     } catch (error) {
       console.error("Error fetching profit summary:", error);
@@ -57,7 +59,7 @@ function Dashboard({ user, onLogout }) {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
+
       if (response.data && response.data.isActive !== undefined) {
         setAccountStatus(response.data.isActive);
         if (!response.data.isActive) {
@@ -89,7 +91,7 @@ function Dashboard({ user, onLogout }) {
 
         if (response.data) {
           setUserData(response.data);
-           setAccountStatus(response.data.isActive);
+          setAccountStatus(response.data.isActive);
           setError(null);
         }
       } catch (error) {
@@ -105,87 +107,87 @@ function Dashboard({ user, onLogout }) {
 
 
   // Fetch posts and orders with refresh capability
-useEffect(() => {
-// In the useEffect for fetching data:
-const fetchData = async () => {
-  try {
-    setError(null);
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setError("Authentication token missing");
-      return;
-    }
-
-         await checkAccountStatus();
-
-    // First, check user status
-    const userResponse = await axios.get(
-      `${baseUrl}/api/protected/current-user`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    const userData = userResponse.data;
-    setUserData(userData);
-    
-    // If user is inactive, show appropriate message
-    if (!userData.isActive) {
-      setAccountStatus(false);
-      setError("Your account has been disabled. Please contact administrator.");
-      setPosts([]);
-      setUserOrders([]);
-      return;
-    }
-
-    setAccountStatus(true);
-    
-    // Fetch posts for active users
-    try {
-      const postsResponse = await axios.get(
-        `${baseUrl}/api/protected/posts/available`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { _: Date.now() },
+  useEffect(() => {
+    // In the useEffect for fetching data:
+    const fetchData = async () => {
+      try {
+        setError(null);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Authentication token missing");
+          return;
         }
-      );
-      
-      setPosts(postsResponse.data);
-      console.log(`Loaded ${postsResponse.data.length} posts`);
-      
-    } catch (postsError) {
-      console.error("Error fetching posts:", postsError);
-      setPosts([]);
-    }
 
-    // Fetch user orders
-    try {
-      const ordersResponse = await axios.get(
-        `${baseUrl}/api/protected/user/orders`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setUserOrders(ordersResponse.data);
-       await fetchProfitSummary();
-    } catch (ordersError) {
-      console.error("Error fetching orders:", ordersError);
-      setUserOrders([]);
-    }
+        await checkAccountStatus();
 
-  } catch (error) {
-    console.error("Network Error:", error);
-    if (error.response?.status === 403) {
-      setError("Your account has been disabled. Please contact administrator.");
-      setAccountStatus(false);
-    } else {
-      setError("Network error. Please try again later.");
-    }
-  }
-};
-  
-  fetchData();
-  const interval = setInterval(fetchData, 30000);
-  return () => clearInterval(interval);
-}, [refreshCounter]); // Removed accountStatus dependency
+        // First, check user status
+        const userResponse = await axios.get(
+          `${baseUrl}/api/protected/current-user`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const userData = userResponse.data;
+        setUserData(userData);
+
+        // If user is inactive, show appropriate message
+        if (!userData.isActive) {
+          setAccountStatus(false);
+          setError("Your account has been disabled. Please contact administrator.");
+          setPosts([]);
+          setUserOrders([]);
+          return;
+        }
+
+        setAccountStatus(true);
+
+        // Fetch posts for active users
+        try {
+          const postsResponse = await axios.get(
+            `${baseUrl}/api/protected/posts/available`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+              params: { _: Date.now() },
+            }
+          );
+
+          setPosts(postsResponse.data);
+          console.log(`Loaded ${postsResponse.data.length} posts`);
+
+        } catch (postsError) {
+          console.error("Error fetching posts:", postsError);
+          setPosts([]);
+        }
+
+        // Fetch user orders
+        try {
+          const ordersResponse = await axios.get(
+            `${baseUrl}/api/protected/user/orders`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setUserOrders(ordersResponse.data);
+          await fetchProfitSummary();
+        } catch (ordersError) {
+          console.error("Error fetching orders:", ordersError);
+          setUserOrders([]);
+        }
+
+      } catch (error) {
+        console.error("Network Error:", error);
+        if (error.response?.status === 403) {
+          setError("Your account has been disabled. Please contact administrator.");
+          setAccountStatus(false);
+        } else {
+          setError("Network error. Please try again later.");
+        }
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [refreshCounter]); // Removed accountStatus dependency
   // Fetch posts and orders with refresh capability
   // useEffect(() => {
   //   const fetchData = async () => {
@@ -272,43 +274,43 @@ const fetchData = async () => {
 
 
   const handleInvest = async (post) => {
-  // Check if account is disabled before investing
-  if (accountStatus === false) {
-    alert("Your account is disabled. Please contact administrator.");
-    return;
-  }
-  
-  try {
-    const token = localStorage.getItem("token");
-    await axios.post(
-      `${baseUrl}/api/protected/orders`,
-      {
-        postId: post._id,
-        productName: post.productName,
-        fullAmount: post.fullAmount,
-        expectedProfit: post.expectedProfit,
-        unitPrice: post.unitPrice,
-        quantity: post.quantity,
-        sellingUnitPrice: post.sellingUnitPrice,
-        timeLine: post.timeLine,
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    setPosts(posts.filter((p) => p._id !== post._id));
-    alert("Investment successful!");
-  } catch (error) {
-    console.error("Investment error:", error);
-    if (error.response?.status === 403) {
-      setAccountStatus(false);
+    // Check if account is disabled before investing
+    if (accountStatus === false) {
       alert("Your account is disabled. Please contact administrator.");
-    } else {
-      alert(
-        `Investment failed: ${error.response?.data?.message || error.message}`
-      );
+      return;
     }
-  }
-};
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${baseUrl}/api/protected/orders`,
+        {
+          postId: post._id,
+          productName: post.productName,
+          fullAmount: post.fullAmount,
+          expectedProfit: post.expectedProfit,
+          unitPrice: post.unitPrice,
+          quantity: post.quantity,
+          sellingUnitPrice: post.sellingUnitPrice,
+          timeLine: post.timeLine,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setPosts(posts.filter((p) => p._id !== post._id));
+      alert("Investment successful!");
+    } catch (error) {
+      console.error("Investment error:", error);
+      if (error.response?.status === 403) {
+        setAccountStatus(false);
+        alert("Your account is disabled. Please contact administrator.");
+      } else {
+        alert(
+          `Investment failed: ${error.response?.data?.message || error.message}`
+        );
+      }
+    }
+  };
   // const handleInvest = async (post) => {
   //   try {
   //     const token = localStorage.getItem("token");
@@ -352,34 +354,19 @@ const fetchData = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const margin = 15;
-    let yPos = 20;
 
-    // Add title and date
-    doc.setFontSize(20);
-    doc.setTextColor(40, 53, 147); // Dark blue
-    doc.text("Investment Dashboard Report", pageWidth / 2, yPos, {
-      align: "center",
-    });
-    yPos += 10;
+    // Use standard letterhead
+    const startY = addLetterhead(doc, "Investment Dashboard Report", logo);
+    let yPos = startY;
 
+    // User header info
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(
-      `Generated on: ${new Date().toLocaleString()}`,
-      pageWidth - margin,
-      yPos,
-      { align: "right" }
-    );
     doc.text(
       `User: ${userData?.username || "N/A"} (${userData?.email || "N/A"})`,
       margin,
       yPos
     );
-    yPos += 15;
-
-    // Add a horizontal line
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 15;
 
     // User Profile Section
@@ -537,35 +524,34 @@ const fetchData = async () => {
 
     // Save the PDF
     doc.save(
-      `Investment_Dashboard_${
-        userData?.username || "user"
+      `Investment_Dashboard_${userData?.username || "user"
       }_${new Date().toLocaleDateString()}.pdf`
     );
   };
 
   // Update the error section to be more specific for disabled accounts
-if (error) {
-  return (
-    <div className="container mx-auto p-4">
-      <div className={`p-5 rounded-lg text-center mb-5 ${accountStatus === false ? 'bg-red-50' : 'bg-yellow-50'}`}>
-        <h2 className={`text-2xl ${accountStatus === false ? 'text-red-600' : 'text-yellow-600'}`}>
-          {accountStatus === false ? 'Account Disabled' : 'Error'}
-        </h2>
-        <p className="mt-2">{error}</p>
-        {accountStatus === false ? (
-          <p className="text-gray-600 mt-2">Please contact the administrator to restore access.</p>
-        ) : (
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Retry
-          </button>
-        )}
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className={`p-5 rounded-lg text-center mb-5 ${accountStatus === false ? 'bg-red-50' : 'bg-yellow-50'}`}>
+          <h2 className={`text-2xl ${accountStatus === false ? 'text-red-600' : 'text-yellow-600'}`}>
+            {accountStatus === false ? 'Account Disabled' : 'Error'}
+          </h2>
+          <p className="mt-2">{error}</p>
+          {accountStatus === false ? (
+            <p className="text-gray-600 mt-2">Please contact the administrator to restore access.</p>
+          ) : (
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Retry
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   // if (error) {
   //   return (
@@ -743,7 +729,7 @@ if (error) {
 // PostItem component with timer
 const PostItem = ({ order, onInvest }) => {
 
-   const [timeLeft, setTimeLeft] = useState({
+  const [timeLeft, setTimeLeft] = useState({
     hours: 0,
     minutes: 0,
     seconds: 0,
@@ -879,11 +865,11 @@ const PostItem = ({ order, onInvest }) => {
             <span className="text-gray-600">Unit Price:</span>
             <span className="font-medium">RS.{order.unitPrice}</span>
           </div>
-              <div className="flex justify-between">
+          <div className="flex justify-between">
             <span className="text-gray-600">Quantity:</span>
             <span className="font-medium">{order.quantity}</span>
           </div>
-             <div className="flex justify-between">
+          <div className="flex justify-between">
             <span className="text-gray-600">Selling Unit Price:</span>
             <span className="font-medium">RS.{order.sellingUnitPrice}</span>
           </div>
