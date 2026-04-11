@@ -1027,53 +1027,187 @@ exports.getPostsByUser = async (req, res) => {
 };
 
 // Update post
+// Update the updatePost function in your postController.js
 exports.updatePost = async (req, res) => {
   try {
     const {
       productName,
       fullAmount,
       unitPrice,
+      quantity,
+      sellingUnitPrice,
       expectedProfit,
       timeLine,
       status,
       description,
     } = req.body;
 
+    // Validate required fields
+    if (!productName || !unitPrice || !quantity || !sellingUnitPrice || !expectedProfit || !timeLine) {
+      return res.status(400).json({ 
+        success: false,
+        msg: "All required fields are missing" 
+      });
+    }
+
+    // Parse numeric values
+    const unitPriceNum = parseFloat(unitPrice);
+    const quantityNum = parseInt(quantity);
+    const sellingUnitPriceNum = parseFloat(sellingUnitPrice);
+    const expectedProfitNum = parseFloat(expectedProfit);
+    
+    // Calculate full amount if not provided
+    let fullAmountNum = parseFloat(fullAmount);
+    if (!fullAmountNum || isNaN(fullAmountNum)) {
+      fullAmountNum = unitPriceNum * quantityNum;
+    }
+
+    // Validate numeric values
+    if (isNaN(unitPriceNum) || isNaN(quantityNum) || isNaN(sellingUnitPriceNum) || isNaN(expectedProfitNum)) {
+      return res.status(400).json({ 
+        success: false,
+        msg: "Invalid numeric values provided" 
+      });
+    }
+
+    // Prepare update data
     const updateData = {
       productName,
-      fullAmount: parseFloat(fullAmount),
-      unitPrice: parseFloat(unitPrice),
-      expectedProfit: parseFloat(expectedProfit),
+      fullAmount: fullAmountNum,
+      unitPrice: unitPriceNum,
+      quantity: quantityNum,
+      sellingUnitPrice: sellingUnitPriceNum,
+      expectedProfit: expectedProfitNum,
       timeLine,
-      status,
+      status: status || "active",
       description,
     };
 
     // Handle image update if exists
     if (req.file) {
-      updateData.image = req.file.path;
+      try {
+        // Upload new image to Cloudinary
+        const dataUri = `data:${
+          req.file.mimetype
+        };base64,${req.file.buffer.toString("base64")}`;
+        
+        const result = await cloudinary.uploader.upload(dataUri, {
+          folder: "post_images",
+          transformation: { width: 800, height: 600, crop: "limit" },
+        });
+        
+        updateData.image = result.secure_url;
+        
+        // Optional: Delete old image from Cloudinary
+        const oldPost = await Post.findById(req.params.id);
+        if (oldPost && oldPost.image) {
+          try {
+            const publicId = oldPost.image.split("/").pop().split(".")[0];
+            await cloudinary.uploader.destroy(`post_images/${publicId}`);
+          } catch (cloudinaryErr) {
+            console.error("Error deleting old image:", cloudinaryErr);
+          }
+        }
+      } catch (uploadError) {
+        console.error("Cloudinary upload error:", uploadError);
+        return res.status(500).json({
+          success: false,
+          msg: "Failed to upload image",
+          error: uploadError.message,
+        });
+      }
     }
 
+    // Update the post
     const updatedPost = await Post.findByIdAndUpdate(
       req.params.id,
       updateData,
       {
         new: true,
+        runValidators: true,
       }
-    );
+    ).populate("createdBy", "username email");
 
     if (!updatedPost) {
-      return res.status(404).json({ msg: "Post not found" });
+      return res.status(404).json({ 
+        success: false,
+        msg: "Post not found" 
+      });
     }
+
+    // Log the update for debugging
+    console.log(`Post updated: ${updatedPost.productName}`);
+    console.log(`New values: Qty=${updatedPost.quantity}, SellPrice=${updatedPost.sellingUnitPrice}`);
 
     res.json({
       success: true,
+      msg: "Post updated successfully",
       post: updatedPost,
     });
   } catch (error) {
-    res.status(500).json({ msg: error.message });
+    console.error("Error updating post:", error);
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        msg: "Validation error",
+        errors: error.errors
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      msg: error.message 
+    });
   }
 };
+// exports.updatePost = async (req, res) => {
+//   try {
+//     const {
+//       productName,
+//       fullAmount,
+//       unitPrice,
+//       expectedProfit,
+//       timeLine,
+//       status,
+//       description,
+//     } = req.body;
+
+//     const updateData = {
+//       productName,
+//       fullAmount: parseFloat(fullAmount),
+//       unitPrice: parseFloat(unitPrice),
+//       expectedProfit: parseFloat(expectedProfit),
+//       timeLine,
+//       status,
+//       description,
+//     };
+
+//     // Handle image update if exists
+//     if (req.file) {
+//       updateData.image = req.file.path;
+//     }
+
+//     const updatedPost = await Post.findByIdAndUpdate(
+//       req.params.id,
+//       updateData,
+//       {
+//         new: true,
+//       }
+//     );
+
+//     if (!updatedPost) {
+//       return res.status(404).json({ msg: "Post not found" });
+//     }
+
+//     res.json({
+//       success: true,
+//       post: updatedPost,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ msg: error.message });
+//   }
+// };
 
 // Add this to your post controller file (where your other post routes are)
 

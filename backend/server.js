@@ -36,8 +36,8 @@ app.use(cors());
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_BASE_URL,
-    // origin: "http://localhost:5173" || process.env.FRONTEND_BASE_URL,
+    // origin: process.env.FRONTEND_BASE_URL,
+    origin: "http://localhost:5173" || process.env.FRONTEND_BASE_URL,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -73,7 +73,7 @@ app.use("/api/protected", protectedRoutes);
 //   (req, res) => {
 //     try {
 //       const user = req.user;
-      
+
 //       // Generate JWT token
 //       const token = jwt.sign(
 //         { id: user._id, role: user.role },

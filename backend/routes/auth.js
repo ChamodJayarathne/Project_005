@@ -69,6 +69,9 @@ const {
   changePassword,
   googleAuth,
   toggleUserStatus,
+   requestPasswordReset,
+  validateResetToken,
+  resetPassword
 } = require("../controllers/authController");
 const { authMiddleware } = require("../middleware/authMiddleware"); // Destructure here too
 const upload = require("../middleware/multer");
@@ -78,6 +81,11 @@ const router = express.Router();
 router.post("/register", upload.single("profileImage"), registerUser);
 router.post("/login", loginUser);
 router.post("/google", googleAuth);
+
+// Password reset routes (public)
+router.post("/forgot-password", requestPasswordReset);
+router.get("/reset-password/:token", validateResetToken);
+router.post("/reset-password/:token", resetPassword);
 
 // Protected routes (admin only)
 router.get("/users", authMiddleware(["admin"]), getAllUsers);

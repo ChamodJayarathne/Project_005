@@ -1824,7 +1824,7 @@ exports.processPayment = async (req, res) => {
         console.log('Payment confirmation email sent to:', updatedOrder.user.email);
       } catch (emailError) {
         console.error('Failed to send payment email:', emailError);
-        // Continue even if email fails
+      
       }
     }
 
@@ -2105,7 +2105,7 @@ exports.getOrder = async (req, res) => {
 exports.updateOrderWithPayment = async (req, res) => {
   try {
     const { payNow, status, adminNotes } = req.body;
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(req.params.id).populate("user", "username email");
 
     if (!order) {
       return res.status(404).json({ msg: "Order not found" });
@@ -2192,11 +2192,26 @@ exports.updateOrderWithPayment = async (req, res) => {
       req.params.id,
       updateData,
       { new: true }
-    );
+    ).populate("user", "username email");
+
+    // Send email confirmation if payment was processed
+    if (payNow && payNow > 0 && updatedOrder.user?.email) {
+      try {
+        await sendPaymentEmail(updatedOrder.user.email, updatedOrder, {
+          amount: parseFloat(payNow),
+          date: new Date(),
+        });
+        console.log(`Payment confirmation email sent to: ${updatedOrder.user.email}`);
+      } catch (emailError) {
+        console.error("Failed to send payment email:", emailError);
+        // Continue even if email fails
+      }
+    }
+
 
     res.json({
       success: true,
-      message: "Payment processed successfully",
+      message: "Payment processed successfully" + (payNow && payNow > 0 && updatedOrder.user?.email ? " and confirmation email sent" : ""),
       order: updatedOrder,
     });
   } catch (error) {
