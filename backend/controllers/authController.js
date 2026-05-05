@@ -48,7 +48,8 @@ const requestPasswordReset = async (req, res) => {
     const user = await User.findOne({ email, provider: 'local' });
     
     if (!user) {
-      return res.status(404).json({ 
+      // Return 400 rather than 404 so we don't cause confusing "404 Not Found" errors in the browser console.
+      return res.status(400).json({ 
         msg: "No account found with this email address" 
       });
     }
