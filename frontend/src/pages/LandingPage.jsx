@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   FiSearch,
@@ -22,11 +22,39 @@ import {
 import "./LandingPage.css";
 
 // Import existing assets from the project
+import AboutSection from "../components/UserDashboard/AboutSection";
+import ContactCard from "../components/UserDashboard/ContactCard";
+import TestimonialSection from "../components/UserDashboard/TestimonialSection";
 import logoImg from "../assets/img/Logo.jpeg";
-import heroImg from "../assets/img/hero.jpg"; // Using existing hero as fallback
-import itemImg from "../assets/img/Item.jpg";
+import heroImg from "../assets/img/h1.jpg"; // Using existing hero as fallback
+import itemImg from "../assets/img/h2.jpg";
+import msi_M from "../assets/img/2024 MSI Vector.jpg";
+import msi_katana from "../assets/img/MSI Katana 15_6_ Gaming Laptop.jpg";
+import Lenovo_l from "../assets/img/Lenovo Loq 15.jpg";
+import ASUS_ROG from "../assets/img/Gaming laptops.jpg";
+import Acer_Predator from "../assets/img/ACER Predator Helios Neo 16.jpg";
+import backgroundImage from "../assets/img/h3.jpg";
+import Hero1 from "../assets/img/hero.jpg";
 
 const LandingPage = () => {
+  const heroImages = [heroImg, backgroundImage, itemImg];
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev === 0 ? heroImages.length - 1 : prev - 1));
+  };
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      nextSlide();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   const categories = [
     { name: "PGA Systems", icon: <FiServer /> },
     { name: "Apple", icon: <FiSmartphone /> },
@@ -55,16 +83,18 @@ const LandingPage = () => {
       title: "MSI Modern 15 H AI C1MG 14th Gen Ultra 7+ ARC Graphics",
       category: "- Laptop -",
       price: "295,000 LKR",
-      image: itemImg,
-      tag: "%"
+      oldPrice: "347,000",
+      image: msi_M,
+      tag: "15%"
     },
     {
       id: 2,
       title: "MSI Katana 15 B14VFK Intel i7 14650HX RTX 4060",
       category: "- Laptop -",
       price: "575,000 LKR",
-      image: itemImg,
-      tag: "%"
+      oldPrice: "638,000",
+      image: msi_katana,
+      tag: "10%"
     },
     {
       id: 3,
@@ -72,10 +102,48 @@ const LandingPage = () => {
       category: "- Laptop -",
       price: "332,000 LKR",
       oldPrice: "342,000",
-      image: itemImg,
-      tag: "%"
+      image: Lenovo_l,
+      tag: "3%"
+    },
+    {
+      id: 4,
+      title: "ASUS ROG Strix G16 i7 13th Gen RTX 4060",
+      category: "- Laptop -",
+      price: "645,000 LKR",
+      oldPrice: "733,000",
+      image: ASUS_ROG,
+      tag: "12%"
+    },
+    {
+      id: 5,
+      title: "Acer Predator Helios Neo 16 i7 13th Gen",
+      category: "- Laptop -",
+      price: "585,000 LKR",
+      oldPrice: "610,000",
+
+      image: Acer_Predator,
+      tag: "4%"
     }
   ];
+
+  const [currentFeatured, setCurrentFeatured] = useState(0);
+
+  const nextFeatured = () => {
+    setCurrentFeatured((prev) => (prev + 1) % featuredProducts.length);
+  };
+
+  const prevFeatured = () => {
+    setCurrentFeatured((prev) => (prev === 0 ? featuredProducts.length - 1 : prev - 1));
+  };
+
+  const getDisplayedFeaturedProducts = () => {
+    const visibleCount = Math.min(3, featuredProducts.length);
+    const displayed = [];
+    for (let i = 0; i < visibleCount; i++) {
+      displayed.push(featuredProducts[(currentFeatured + i) % featuredProducts.length]);
+    }
+    return displayed;
+  };
 
   return (
     <div className="landing-page-container">
@@ -121,14 +189,50 @@ const LandingPage = () => {
         {/* Main Content */}
         <main className="lp-content">
           {/* Hero */}
-          <section className="lp-hero">
-            <div className="lp-hero-graphic">
-              {/* In a real scenario, we'd use the generated image here */}
-              <img src={heroImg} alt="Hero Banner" style={{ width: '100%', borderRadius: '12px' }} />
+          <section className="lp-hero" style={{ position: 'relative' }}>
+            <div className="lp-hero-graphic" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <FiChevronLeft
+                size={40}
+                onClick={prevSlide}
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  cursor: 'pointer',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  borderRadius: '50%',
+                  padding: '5px',
+                  zIndex: 2,
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}
+              />
+              <img
+                src={heroImages[currentSlide]}
+                alt={`Hero Banner ${currentSlide + 1}`}
+                style={{ width: '100%', height: '400px', objectFit: 'cover', borderRadius: '12px', transition: 'all 0.3s ease' }}
+              />
+              <FiChevronRight
+                size={40}
+                onClick={nextSlide}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  cursor: 'pointer',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  borderRadius: '50%',
+                  padding: '5px',
+                  zIndex: 2,
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}
+              />
             </div>
             <div className="lp-hero-dots">
-              {[...Array(10)].map((_, i) => (
-                <div key={i} className={`lp-dot ${i === 3 ? 'active' : ''}`}></div>
+              {heroImages.map((_, i) => (
+                <div
+                  key={i}
+                  onClick={() => setCurrentSlide(i)}
+                  className={`lp-dot ${i === currentSlide ? 'active' : ''}`}
+                  style={{ cursor: 'pointer' }}
+                ></div>
               ))}
             </div>
           </section>
@@ -142,8 +246,8 @@ const LandingPage = () => {
             </div>
 
             <div className="lp-product-grid">
-              <FiChevronLeft size={40} className="lp-nav-arrow" style={{ alignSelf: 'center', cursor: 'pointer', opacity: 0.5 }} />
-              {featuredProducts.map((product) => (
+              <FiChevronLeft size={40} className="lp-nav-arrow" onClick={prevFeatured} style={{ alignSelf: 'center', cursor: 'pointer' }} />
+              {getDisplayedFeaturedProducts().map((product) => (
                 <div key={product.id} className="lp-product-card">
                   <div className="lp-card-tag">{product.tag}</div>
                   <img src={product.image} alt={product.title} className="lp-card-image" />
@@ -158,18 +262,62 @@ const LandingPage = () => {
                   </div>
                 </div>
               ))}
-              <FiChevronRight size={40} className="lp-nav-arrow" style={{ alignSelf: 'center', cursor: 'pointer', opacity: 0.5 }} />
+              <FiChevronRight size={40} className="lp-nav-arrow" onClick={nextFeatured} style={{ alignSelf: 'center', cursor: 'pointer' }} />
             </div>
 
             <div className="lp-hero-dots" style={{ justifyContent: 'center', marginTop: '2rem' }}>
-              {[...Array(10)].map((_, i) => (
-                <div key={i} className={`lp-dot ${i === 0 ? 'active' : ''}`}></div>
+              {featuredProducts.map((_, i) => (
+                <div
+                  key={i}
+                  onClick={() => setCurrentFeatured(i)}
+                  className={`lp-dot ${i === currentFeatured ? 'active' : ''}`}
+                  style={{ cursor: 'pointer' }}
+                ></div>
+              ))}
+            </div>
+          </section>
+
+          <section className="lp-offers mt-10">
+            {/* <div className="lp-section-header">
+              <span className="lp-tag" style={{ backgroundColor: '#ff9800' }}>SPECIAL OFFERS %</span>
+              <span style={{ color: '#909095' }}>★</span>
+              <span>FEATURED</span>
+            </div> */}
+
+            <div className="lp-product-grid">
+              <FiChevronLeft size={40} className="lp-nav-arrow" onClick={prevFeatured} style={{ alignSelf: 'center', cursor: 'pointer' }} />
+              {getDisplayedFeaturedProducts().map((product) => (
+                <div key={product.id} className="lp-product-card">
+                  <div className="lp-card-tag">{product.tag}</div>
+                  <img src={product.image} alt={product.title} className="lp-card-image" />
+                  <div className="lp-card-info">
+                    <div className="lp-card-title">{product.title}</div>
+                    <div className="lp-card-category">{product.category}</div>
+                    <div className="lp-card-price">
+                      {product.oldPrice && <span style={{ textDecoration: 'line-through', fontSize: '0.8rem', marginRight: '10px', opacity: 0.5 }}>{product.oldPrice}</span>}
+                      {product.price}
+                    </div>
+                    <div className="lp-stock-status">In Stock</div>
+                  </div>
+                </div>
+              ))}
+              <FiChevronRight size={40} className="lp-nav-arrow" onClick={nextFeatured} style={{ alignSelf: 'center', cursor: 'pointer' }} />
+            </div>
+
+            <div className="lp-hero-dots" style={{ justifyContent: 'center', marginTop: '2rem' }}>
+              {featuredProducts.map((_, i) => (
+                <div
+                  key={i}
+                  onClick={() => setCurrentFeatured(i)}
+                  className={`lp-dot ${i === currentFeatured ? 'active' : ''}`}
+                  style={{ cursor: 'pointer' }}
+                ></div>
               ))}
             </div>
           </section>
 
           {/* Awards Section */}
-          <section className="lp-awards">
+          {/* <section className="lp-awards">
             <div className="lp-awards-grid">
               <FiChevronLeft size={40} style={{ alignSelf: 'center', cursor: 'pointer', opacity: 0.5 }} />
               {[
@@ -190,7 +338,55 @@ const LandingPage = () => {
                 <div key={i} className={`lp-dot ${i === 2 ? 'active' : ''}`}></div>
               ))}
             </div>
-          </section>
+          </section> */}
+
+
+
+
+          <div
+            className="min-h-screen bg-cover bg-center bg-fixed"
+          // style={{
+          //   backgroundImage: `url(${backgroundImage})`,
+          //   backgroundSize: "cover",
+          //   backgroundPosition: "center",
+          //   backgroundRepeat: "no-repeat",
+          //   backgroundAttachment: "fixed",
+          // }}
+          >
+            <div className="min-h-screen  bg-opacity-50">
+              <div className="w-full py-12 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto text-center">
+
+                  <div className="md:w-full mb-8 md:mb-0 p-0 md:p-8">
+                    <h2 className="text-blue-600 font-medium text-4xl mb-2">
+                      Become a Sharper
+                    </h2>
+                    <h1 className="text-white font-bold text-6xl mb-4">
+                      Customer
+                    </h1>
+                    <p className="text-white mb-10 text-lg max-w-full">
+                      Discover investing with Us to trusted electronic wholesale
+                      market App
+                    </p>
+                  </div>
+
+
+                  {/* <div className="md:w-1/2">
+                    <div className="rounded-3xl overflow-hidden shadow-lg">
+                      <img
+                        src={Hero1}
+                        alt="Investment Growth Visualization"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </div> */}
+                </div>
+              </div>
+              <AboutSection />
+              <ContactCard />
+              <TestimonialSection />
+            </div>
+          </div>
 
           {/* Service Banner */}
           <section className="lp-service-banner">

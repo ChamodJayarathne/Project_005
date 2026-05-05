@@ -48,7 +48,7 @@ const TestimonialSection = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-4 mb-0">
-      <div className="border rounded-lg shadow-sm">
+      <div className="border rounded-lg shadow-sm text-white">
         <div className="px-6 py-4 border-b">
           <h2 className="text-xl md:text-2xl font-semibold text-center">
             What our Users are Saying
@@ -74,13 +74,13 @@ const TestimonialSection = () => {
                 ))}
               </div>
 
-              <p className="text-gray-700 mb-3">{testimonial.text}</p>
+              <p className="text-gray-400 mb-3">{testimonial.text}</p>
 
               <div className="flex items-center">
                 <div className="mr-4 font-bold text-xl">{testimonial.id}</div>
                 <div>
                   <div className="font-medium">{testimonial.author}</div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-400">
                     <span>PlayStore</span> | <span>{testimonial.date}</span>
                   </div>
                 </div>
@@ -94,9 +94,8 @@ const TestimonialSection = () => {
             <button
               key={index}
               onClick={() => handlePageChange(index)}
-              className={`mx-1 w-2 h-2 rounded-full ${
-                currentPage === index ? "bg-blue-500" : "bg-gray-300"
-              }`}
+              className={`mx-1 w-2 h-2 rounded-full ${currentPage === index ? "bg-blue-500" : "bg-gray-300"
+                }`}
               aria-label={`Page ${index + 1}`}
             />
           ))}

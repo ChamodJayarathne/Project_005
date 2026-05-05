@@ -5,10 +5,10 @@ import Director from "../../assets/img/Chinthaka.jpg";
 const AboutSection = () => {
   return (
     <div className="w-full  py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-4xl sm:text-5xl font-bold mb-12">WHO WE ARE?</h1>
+      <div className="max-w-4xl mx-auto ">
+        <h1 className="text-4xl sm:text-5xl text-white font-bold text-center mb-12">WHO WE ARE?</h1>
 
-        <div className="space-y-6">
+        <div className="space-y-6 text-justify text-white">
           {/* <h2 className="text-2xl font-semibold">About Us</h2> */}
 
           <p className="text-base sm:text-lg">
@@ -33,8 +33,8 @@ const AboutSection = () => {
           </p>
 
           <div className="py-2">
-            <h2 className="text-2xl font-semibold mb-4">Vision</h2>
-            <p className="text-base sm:text-lg">
+            <h2 className="text-2xl font-semibold text-center mb-4">Vision</h2>
+            <p className="text-base sm:text-lg text-justify">
               To become the most trusted and innovative global hub for wholesale
               technology and digital lifestyle products, empowering businesses
               with seamless access to quality, value, and digital excellence.
@@ -42,9 +42,9 @@ const AboutSection = () => {
             </p>
           </div>
 
-          <div className="py-2">
-            <h2 className="text-2xl font-semibold mb-4">Mission</h2>
-            <p className="text-base sm:text-lg">
+          <div className="py-2 ">
+            <h2 className="text-2xl font-semibold text-center mb-4">Mission</h2>
+            <p className="text-base sm:text-lg text-justify">
               At Wonder Choice, our mission is to provide reliable, efficient,
               and affordable wholesale solutions for computer parts, gift items,
               digital goods, and digital assets. We strive to build lasting
@@ -55,7 +55,7 @@ const AboutSection = () => {
           </div>
 
           <div className="py-2">
-            <h2 className="text-2xl font-semibold mb-4">
+            <h2 className="text-2xl font-semibold text-center mb-4">
               Director’s Statement
             </h2>
 
@@ -104,7 +104,7 @@ const AboutSection = () => {
               excellence at every step.
             </p>
 
-            <h6>L.R.Chinthaka Wijesinghe<br/> Founder & Director, <br/>Wonder Choice</h6>
+            <h6>L.R.Chinthaka Wijesinghe<br /> Founder & Director, <br />Wonder Choice</h6>
           </div>
         </div>
       </div>

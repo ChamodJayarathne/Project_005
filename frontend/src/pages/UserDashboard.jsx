@@ -21,7 +21,7 @@ function UserDashboard({ onLogout }) {
         }}
       >
         {/* Optional overlay to improve text readability over the background */}
-        <div className="min-h-screen  bg-opacity-50">
+        <div className="min-h-screen bg-[#0a0a0b]  bg-opacity-50">
           <Hero />
           <AboutSection />
           <ContactCard />
