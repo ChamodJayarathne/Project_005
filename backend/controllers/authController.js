@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { OAuth2Client } = require("google-auth-library");
 const cloudinary = require("../config/cloudinary");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
 // Initialize Google OAuth client
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -26,14 +26,8 @@ const client = new OAuth2Client(CLIENT_ID);
 //   }
 // };
 
-// Email transporter configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Password Reset - Request Reset Link
 const requestPasswordReset = async (req, res) => {
@@ -144,8 +138,17 @@ const requestPasswordReset = async (req, res) => {
     //   `
     // };
 
-    // Send email
-    await transporter.sendMail(mailOptions);
+    // Send email via Resend
+    const { data, error } = await resend.emails.send({
+      from: 'Wonder Choice <onboarding@resend.dev>', // Update this to your verified domain later! e.g. 'hello@wonder-choice.com'
+      to: user.email,
+      subject: mailOptions.subject,
+      html: mailOptions.html,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
     
     res.json({ 
       success: true, 
@@ -283,7 +286,17 @@ const resetPassword = async (req, res) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
+    // Send email via Resend
+    const { data, error } = await resend.emails.send({
+      from: 'Wonder Choice <onboarding@resend.dev>',
+      to: user.email,
+      subject: mailOptions.subject,
+      html: mailOptions.html,
+    });
+    
+    if (error) {
+      console.error("Resend error:", error.message);
+    }
 
     res.json({ 
       success: true, 
@@ -393,7 +406,16 @@ const registerUser = async (req, res) => {
     };
 
     try {
-      await transporter.sendMail(welcomeMailOptions);
+      const { data, error } = await resend.emails.send({
+        from: 'Wonder Choice <onboarding@resend.dev>',
+        to: newUser.email,
+        subject: welcomeMailOptions.subject,
+        html: welcomeMailOptions.html,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
       console.log("Welcome email sent successfully to:", newUser.email);
     } catch (mailError) {
       console.error("Error sending welcome email:", mailError);
