@@ -73,8 +73,11 @@ const requestPasswordReset = async (req, res) => {
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    // Create reset URL
-    const resetUrl = `${process.env.FRONTEND_BASE_local_URL}/reset-password/${resetToken}`;
+    // Create reset URL using FRONTEND_BASE_URL for production
+    const baseUrl = process.env.NODE_ENV === "production" 
+      ? process.env.FRONTEND_BASE_URL 
+      : (process.env.FRONTEND_BASE_local_URL || process.env.FRONTEND_BASE_URL);
+    const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
     
     // Email content
     const mailOptions = {
