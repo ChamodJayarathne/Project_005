@@ -1604,7 +1604,9 @@
 const Order = require("../models/Order");
 const Post = require("../models/Post");
 const User = require("../models/User");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const getSafeOrderFields = (order) => {
   return {
@@ -1614,22 +1616,7 @@ const getSafeOrderFields = (order) => {
   };
 };
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-// Test the transporter connection
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("SMTP Connection Error:", error);
-  } else {
-    console.log("SMTP Connection Ready");
-  }
-});
+// Removed nodemailer global initialization and verify block
 
 // Email sending function for payments
 async function sendPaymentEmail(userEmail, order, paymentDetails) {
@@ -1680,7 +1667,16 @@ async function sendPaymentEmail(userEmail, order, paymentDetails) {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    const { data, error } = await resend.emails.send({
+      from: 'Wonder Choice <onboarding@resend.dev>',
+      to: userEmail,
+      subject: mailOptions.subject,
+      html: mailOptions.html,
+    });
+    
+    if (error) {
+      throw new Error(error.message);
+    }
     console.log(`Payment confirmation email sent to ${userEmail}`);
   } catch (error) {
     console.error("Error sending payment email:", error);
@@ -1820,11 +1816,19 @@ exports.processPayment = async (req, res) => {
           `,
         };
 
-        await transporter.sendMail(mailOptions);
+        const { data, error } = await resend.emails.send({
+          from: 'Wonder Choice <onboarding@resend.dev>',
+          to: updatedOrder.user.email,
+          subject: mailOptions.subject,
+          html: mailOptions.html,
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
         console.log('Payment confirmation email sent to:', updatedOrder.user.email);
       } catch (emailError) {
-        console.error('Failed to send payment email:', emailError);
-      
+        console.error('Failed to send payment email via Resend:', emailError);
       }
     }
 

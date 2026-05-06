@@ -1,7 +1,8 @@
 const Order = require("../models/Order");
 const Post = require("../models/Post");
 const User = require("../models/User");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 const cloudinary = require("../config/cloudinary");
 
 // Email sending function
@@ -49,17 +50,17 @@ const cloudinary = require("../config/cloudinary");
 const checkUserActive = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-    
+
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
     }
-    
+
     if (!user.isActive) {
-      return res.status(403).json({ 
-        msg: "Your account is disabled. Please contact administrator." 
+      return res.status(403).json({
+        msg: "Your account is disabled. Please contact administrator."
       });
     }
-    
+
     next();
   } catch (error) {
     res.status(500).json({ msg: error.message });
@@ -77,7 +78,7 @@ async function sendPostEmails(emails, post) {
   }
 
   // Filter out any null or undefined emails
-  const validEmails = emails.filter(email => 
+  const validEmails = emails.filter(email =>
     email && typeof email === 'string' && email.includes('@')
   );
 
@@ -86,16 +87,8 @@ async function sendPostEmails(emails, post) {
     return;
   }
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"Wonder Choice"<${process.env.EMAIL_USER}>`,
     to: validEmails.join(","),
     subject: "New Product Available for Purchase",
     html: `
@@ -113,12 +106,12 @@ async function sendPostEmails(emails, post) {
           </ul>
         </div>
         
-        ${post.image ? 
-          `<div style="text-align: center; margin: 20px 0;">
+        ${post.image ?
+        `<div style="text-align: center; margin: 20px 0;">
             <img src="${post.image}" alt="${post.productName}" style="max-width: 300px; border-radius: 8px; border: 1px solid #ddd;">
-          </div>` 
-          : ""
-        }
+          </div>`
+        : ""
+      }
         
         <div style="background-color: #e8f4fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <p style="margin-bottom: 10px;">Login to your account to invest in this opportunity!</p>
@@ -137,10 +130,19 @@ async function sendPostEmails(emails, post) {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    const { data, error } = await resend.emails.send({
+      from: mailOptions.from,
+      to: validEmails,
+      subject: mailOptions.subject,
+      html: mailOptions.html,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
     console.log(`Emails sent successfully to ${validEmails.length} recipients`);
   } catch (err) {
-    console.error("Error sending emails:", err);
+    console.error("Error sending emails via Resend:", err);
     // Don't throw the error - just log it and continue
     console.log("Continuing with post creation despite email error");
   }
@@ -164,9 +166,8 @@ exports.createPost = async (req, res) => {
 
     if (req.file) {
       try {
-        const dataUri = `data:${
-          req.file.mimetype
-        };base64,${req.file.buffer.toString("base64")}`;
+        const dataUri = `data:${req.file.mimetype
+          };base64,${req.file.buffer.toString("base64")}`;
         const result = await cloudinary.uploader.upload(dataUri, {
           folder: "post_images",
           transformation: { width: 800, height: 600, crop: "limit" },
@@ -183,7 +184,7 @@ exports.createPost = async (req, res) => {
 
     // Get ALL users except the current admin
     console.log(`\n=== Creating post by admin: ${req.user.id} ===`);
-    
+
     const allUsers = await User.find({
       _id: { $ne: req.user.id },
       role: "user"
@@ -220,7 +221,7 @@ exports.createPost = async (req, res) => {
 
     // Save post
     await newPost.save();
-    
+
     console.log(`✅ Post created successfully: ${newPost.productName}`);
     console.log(`Post ID: ${newPost._id}`);
 
@@ -228,7 +229,7 @@ exports.createPost = async (req, res) => {
     const activeUserEmails = activeUsers
       .map((user) => user.email)
       .filter(email => email && email.includes('@'));
-    
+
     if (activeUserEmails.length > 0) {
       sendPostEmails(activeUserEmails, newPost).catch(err => {
         console.error("Email sending failed:", err.message);
@@ -245,10 +246,10 @@ exports.createPost = async (req, res) => {
         emailsSent: activeUserEmails.length
       }
     });
-    
+
   } catch (error) {
     console.error("❌ Error in createPost:", error);
-    
+
     if (error.name === 'ValidationError') {
       console.error("Validation errors:", error.errors);
       return res.status(400).json({
@@ -257,7 +258,7 @@ exports.createPost = async (req, res) => {
         errors: error.errors
       });
     }
-    
+
     res.status(500).json({
       success: false,
       msg: error.message
@@ -329,15 +330,15 @@ exports.createPost = async (req, res) => {
 
 //     // Send emails to all ACTIVE users (if any)
 //     const userEmails = users.map((user) => user.email).filter(email => email);
-    
+
 //     console.log(`Attempting to send emails to ${userEmails.length} users`);
-    
+
 //     if (userEmails.length > 0) {
 //       // Send emails asynchronously - don't wait for it to complete
 //       sendPostEmails(userEmails, newPost).catch(err => {
 //         console.error("Email sending failed, but post was created:", err.message);
 //       });
-      
+
 //       console.log("Email sending initiated in background");
 //     } else {
 //       console.log("No users with email addresses to send notifications to");
@@ -349,7 +350,7 @@ exports.createPost = async (req, res) => {
 //       post: newPost,
 //       notifiedUsers: userEmails.length
 //     });
-    
+
 //   } catch (error) {
 //     console.error("Error in createPost:", error);
 //     res.status(500).json({
@@ -440,15 +441,15 @@ exports.createPost = async (req, res) => {
 //     const activeUserEmails = activeUsers
 //       .map((user) => user.email)
 //       .filter(email => email && email.includes('@')); // Valid email check
-    
+
 //     console.log(`Attempting to send emails to ${activeUserEmails.length} active users`);
-    
+
 //     if (activeUserEmails.length > 0) {
 //       // Send emails asynchronously
 //       sendPostEmails(activeUserEmails, newPost).catch(err => {
 //         console.error("Email sending failed, but post was created:", err.message);
 //       });
-      
+
 //       console.log("Email sending initiated for active users");
 //     } else {
 //       console.log("No active users with valid email addresses");
@@ -473,7 +474,7 @@ exports.createPost = async (req, res) => {
 //         emailsSent: activeUserEmails.length
 //       }
 //     });
-    
+
 //   } catch (error) {
 //     console.error("Error in createPost:", error);
 //     res.status(500).json({
@@ -496,17 +497,17 @@ exports.getAdminData = (req, res) => {
 // const checkUserActive = async (req, res, next) => {
 //   try {
 //     const user = await User.findById(req.user.id);
-    
+
 //     if (!user) {
 //       return res.status(404).json({ msg: "User not found" });
 //     }
-    
+
 //     if (!user.isActive) {
 //       return res.status(403).json({ 
 //         msg: "Your account is disabled. Please contact administrator." 
 //       });
 //     }
-    
+
 //     next();
 //   } catch (error) {
 //     res.status(500).json({ msg: error.message });
@@ -549,7 +550,7 @@ exports.getAdminData = (req, res) => {
 //     // First, check if user account is active
 //     const user = await User.findById(userId);
 //     console.log(`User found: ${user ? 'Yes' : 'No'}, isActive: ${user?.isActive}`);
-    
+
 //     if (!user || !user.isActive) {
 //       return res.status(403).json({ 
 //         error: "Your account is disabled. Please contact administrator." 
@@ -569,13 +570,13 @@ exports.getAdminData = (req, res) => {
 //     };
 
 //     console.log("Query for posts:", JSON.stringify(query, null, 2));
-    
+
 //     const posts = await Post.find(query)
 //       .populate("createdBy", "username")
 //       .sort({ createdAt: -1 }); // Newest first
 
 //     console.log(`Found ${posts.length} available posts for user ${userId}`);
-    
+
 //     // Log each post for debugging
 //     posts.forEach((post, index) => {
 //       console.log(`Post ${index + 1}: ${post.productName}`);
@@ -615,16 +616,16 @@ exports.getAvailablePosts = async (req, res) => {
     // 3. User hasn't invested in
     // 4. User is in visibleTo array
     const now = new Date();
-    
+
     const availablePosts = await Post.find({
       status: "active",
       expiresAt: { $gt: now },
       investedUsers: { $ne: userId },
       visibleTo: userId
     })
-    .populate("createdBy", "username")
-    .sort({ createdAt: -1 })
-    .lean(); // Use lean() for better performance
+      .populate("createdBy", "username")
+      .sort({ createdAt: -1 })
+      .lean(); // Use lean() for better performance
 
     console.log(`Found ${availablePosts.length} available posts for user ${userId}`);
 
@@ -636,9 +637,9 @@ exports.getAvailablePosts = async (req, res) => {
     res.json(availablePosts);
   } catch (error) {
     console.error("Error in getAvailablePosts:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Server error",
-      message: error.message 
+      message: error.message
     });
   }
 };
@@ -659,7 +660,7 @@ exports.fixPostVisibility = async (req, res) => {
     console.log(`Inactive users: ${inactiveUserIds.length}`);
 
     // Get all active posts
-    const activePosts = await Post.find({ 
+    const activePosts = await Post.find({
       status: "active",
       expiresAt: { $gt: new Date() }
     });
@@ -671,7 +672,7 @@ exports.fixPostVisibility = async (req, res) => {
     for (const post of activePosts) {
       // Remove inactive users from visibleTo
       const currentVisibleTo = post.visibleTo || [];
-      const newVisibleTo = currentVisibleTo.filter(id => 
+      const newVisibleTo = currentVisibleTo.filter(id =>
         activeUserIds.some(activeId => activeId.toString() === id.toString())
       );
 
@@ -682,8 +683,8 @@ exports.fixPostVisibility = async (req, res) => {
       );
 
       // If there are changes, update the post
-      if (newVisibleTo.length !== currentVisibleTo.length || 
-          newSharedWith.length !== currentSharedWith.length) {
+      if (newVisibleTo.length !== currentVisibleTo.length ||
+        newSharedWith.length !== currentSharedWith.length) {
         post.visibleTo = newVisibleTo;
         post.sharedWith = newSharedWith;
         await post.save();
@@ -739,7 +740,7 @@ exports.fixPostVisibility = async (req, res) => {
 //     }).select('productName visibleTo expiresAt');
 
 //     console.log(`Total active posts in system: ${allActivePosts.length}`);
-    
+
 //     // Check which posts this user can see
 //     const availablePosts = await Post.find({
 //       status: "active",
@@ -763,7 +764,7 @@ exports.fixPostVisibility = async (req, res) => {
 //     if (availablePosts.length === 0 && allActivePosts.length > 0) {
 //       console.log(`⚠️ WARNING: User ${userId} has 0 posts in visibleTo`);
 //       console.log(`Checking all active posts for visibility issues...`);
-      
+
 //       allActivePosts.forEach((post, index) => {
 //         const isVisible = post.visibleTo.includes(userId);
 //         console.log(`Post ${index + 1}: ${post.productName} - Visible: ${isVisible}`);
@@ -1044,9 +1045,9 @@ exports.updatePost = async (req, res) => {
 
     // Validate required fields
     if (!productName || !unitPrice || !quantity || !sellingUnitPrice || !expectedProfit || !timeLine) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        msg: "All required fields are missing" 
+        msg: "All required fields are missing"
       });
     }
 
@@ -1055,7 +1056,7 @@ exports.updatePost = async (req, res) => {
     const quantityNum = parseInt(quantity);
     const sellingUnitPriceNum = parseFloat(sellingUnitPrice);
     const expectedProfitNum = parseFloat(expectedProfit);
-    
+
     // Calculate full amount if not provided
     let fullAmountNum = parseFloat(fullAmount);
     if (!fullAmountNum || isNaN(fullAmountNum)) {
@@ -1064,9 +1065,9 @@ exports.updatePost = async (req, res) => {
 
     // Validate numeric values
     if (isNaN(unitPriceNum) || isNaN(quantityNum) || isNaN(sellingUnitPriceNum) || isNaN(expectedProfitNum)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        msg: "Invalid numeric values provided" 
+        msg: "Invalid numeric values provided"
       });
     }
 
@@ -1087,17 +1088,16 @@ exports.updatePost = async (req, res) => {
     if (req.file) {
       try {
         // Upload new image to Cloudinary
-        const dataUri = `data:${
-          req.file.mimetype
-        };base64,${req.file.buffer.toString("base64")}`;
-        
+        const dataUri = `data:${req.file.mimetype
+          };base64,${req.file.buffer.toString("base64")}`;
+
         const result = await cloudinary.uploader.upload(dataUri, {
           folder: "post_images",
           transformation: { width: 800, height: 600, crop: "limit" },
         });
-        
+
         updateData.image = result.secure_url;
-        
+
         // Optional: Delete old image from Cloudinary
         const oldPost = await Post.findById(req.params.id);
         if (oldPost && oldPost.image) {
@@ -1129,9 +1129,9 @@ exports.updatePost = async (req, res) => {
     ).populate("createdBy", "username email");
 
     if (!updatedPost) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        msg: "Post not found" 
+        msg: "Post not found"
       });
     }
 
@@ -1146,7 +1146,7 @@ exports.updatePost = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating post:", error);
-    
+
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
@@ -1154,10 +1154,10 @@ exports.updatePost = async (req, res) => {
         errors: error.errors
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
-      msg: error.message 
+      msg: error.message
     });
   }
 };
