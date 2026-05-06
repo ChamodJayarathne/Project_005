@@ -613,6 +613,7 @@ function Register({ setUser }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     const data = new FormData();
     data.append("username", formData.username);
     data.append("email", formData.email);
@@ -626,6 +627,8 @@ function Register({ setUser }) {
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       toast.error(err.response?.data?.msg || "Registration failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -709,7 +712,11 @@ function Register({ setUser }) {
                   <label htmlFor="terms" className="auth-checkbox-label">I accept all terms &amp; conditions</label>
                 </div>
 
-                <button type="submit" className="auth-submit-btn">Register Now</button>
+                <button type="submit" disabled={isLoading} className="auth-submit-btn">
+                  {isLoading ? (
+                    <><span className="auth-spinner" /> Processing...</>
+                  ) : "Register Now"}
+                </button>
               </div>
             </form>
 
