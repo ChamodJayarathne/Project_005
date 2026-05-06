@@ -155,7 +155,7 @@ const requestPasswordReset = async (req, res) => {
   } catch (error) {
     console.error("Password reset request error:", error);
     res.status(500).json({ 
-      msg: "Error sending reset email. Please try again later." 
+      msg: "Error sending reset email: " + (error.message || "Please try again later.") 
     });
   }
 };
