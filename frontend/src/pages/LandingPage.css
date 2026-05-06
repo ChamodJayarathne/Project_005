@@ -1,343 +1,595 @@
+/* ============================================================
+   LANDING PAGE CSS
+   ── Desktop  (≥1024px) : sidebar + main grid — UNCHANGED ──
+   ── Tablet   (768–1023): slim cat-bar + drawer sidebar     ──
+   ── Mobile   (<640px)  : single-column, 1 product card    ──
+   ── XS       (<400px)  : tightest spacing                  ──
+   ============================================================ */
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 
+/* ── Design Tokens ── */
 :root {
-  --lp-bg: #0a0a0b;
-  --lp-card-bg: #141417;
-  --lp-sidebar-bg: #121214;
-  --lp-text-primary: #ffffff;
-  --lp-text-secondary: #909095;
-  --lp-accent-orange: #ff9800;
-  --lp-accent-blue: #00e5ff;
-  --lp-accent-blue-deep: #283593;
-  --lp-border: #1f1f23;
-  --lp-font-main: 'Outfit', sans-serif;
+  --lp-bg:            #0a0a0b;
+  --lp-card-bg:       #141417;
+  --lp-sidebar-bg:    #0f0f12;
+  --lp-text-primary:  #ffffff;
+  --lp-text-muted:    #909095;
+  --lp-orange:        #ff9800;
+  --lp-blue:          #00e5ff;
+  --lp-border:        #1f1f23;
+  --lp-font:          'Outfit', sans-serif;
+  --lp-sidebar-w:     240px;
+  --lp-radius:        12px;
+  --lp-ease:          0.25s ease;
 }
 
+/* ── Base ── */
+*, *::before, *::after { box-sizing: border-box; }
+
 .landing-page-container {
-  background-color: var(--lp-bg);
+  background: var(--lp-bg);
   color: var(--lp-text-primary);
-  font-family: var(--lp-font-main);
+  font-family: var(--lp-font);
   min-height: 100vh;
-  margin: 0;
-  padding: 0;
   overflow-x: hidden;
 }
 
-/* Header */
-.lp-header {
-  background-color: var(--lp-bg);
+/* ============================================================
+   CATEGORY BAR  — mobile/tablet only, hidden on desktop
+   ============================================================ */
+.lp-cat-bar {
+  display: none;                        /* shown in @media below */
+  background: var(--lp-sidebar-bg);
   border-bottom: 1px solid var(--lp-border);
-  padding: 1rem 2rem;
+  padding: 0.5rem 1rem;
+}
+
+.lp-cat-bar__btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid var(--lp-border);
+  border-radius: 6px;
+  color: var(--lp-text-muted);
+  font-family: var(--lp-font);
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: color var(--lp-ease), border-color var(--lp-ease);
+}
+.lp-cat-bar__btn:hover {
+  color: var(--lp-orange);
+  border-color: var(--lp-orange);
+}
+.lp-cat-bar__chevron { margin-left: auto; }
+
+/* ============================================================
+   DIM OVERLAY behind the drawer
+   ============================================================ */
+.lp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 299;
+  backdrop-filter: blur(2px);
+}
+
+/* ============================================================
+   CATEGORY DRAWER  (off-canvas, slides in from left)
+   Always off-screen; opens via .lp-drawer--open
+   ============================================================ */
+.lp-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: min(var(--lp-sidebar-w), 85vw);
+  height: 100vh;
+  background: var(--lp-sidebar-bg);
+  border-right: 1px solid var(--lp-border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 300;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lp-border) transparent;
+}
+.lp-drawer--open { transform: translateX(0); }
+
+.lp-drawer__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--lp-border);
   position: sticky;
   top: 0;
-  z-index: 100;
+  background: var(--lp-sidebar-bg);
+  z-index: 1;
 }
-
-.lp-logo-group {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.lp-logo-text {
-  font-size: 1.5rem;
+.lp-drawer__title {
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lp-text-muted);
 }
-
-.lp-nav-links {
-  display: flex;
-  gap: 2rem;
-}
-
-.lp-nav-links a {
-  color: var(--lp-text-secondary);
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: color 0.3s;
-}
-
-.lp-nav-links a:hover {
-  color: var(--lp-accent-blue);
-}
-
-.lp-header-tools {
+.lp-drawer__close {
+  background: none;
+  border: none;
+  color: var(--lp-text-primary);
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  border-radius: 6px;
+  padding: 0.2rem;
+  transition: background var(--lp-ease);
 }
+.lp-drawer__close:hover { background: var(--lp-border); }
 
-.lp-login-link {
-  color: white;
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
-.lp-phone {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: var(--lp-text-secondary);
-}
-
-.lp-user-cart {
-  background-color: var(--lp-accent-orange);
-  color: black;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-}
-
-.lp-search-btn {
-  background-color: var(--lp-accent-orange);
-  padding: 0.5rem;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Layout */
-.lp-main-layout {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  min-height: calc(100vh - 72px);
-}
-
-/* Sidebar */
-.lp-sidebar {
-  background-color: var(--lp-sidebar-bg);
-  border-right: 1px solid var(--lp-border);
-  padding: 1rem 0;
-}
-
+/* ============================================================
+   SIDEBAR ITEMS  (shared between desktop sidebar & drawer)
+   ============================================================ */
 .lp-sidebar-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.8rem;
-  color: var(--lp-text-secondary);
+  gap: 0.85rem;
+  padding: 0.72rem 1.25rem;
+  font-size: 0.73rem;
+  color: var(--lp-text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   border-bottom: 1px solid var(--lp-border);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background var(--lp-ease), color var(--lp-ease);
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-.lp-sidebar-item:hover {
-  background-color: var(--lp-card-bg);
-  color: white;
-}
-
+.lp-sidebar-item:hover { background: var(--lp-card-bg); color: #fff; }
 .lp-sidebar-icon {
-  width: 24px;
-  height: 24px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
 }
 
-/* Hero Section */
+/* ============================================================
+   DESKTOP SIDEBAR  (visible ≥1024px only)
+   ============================================================ */
+.lp-sidebar--desktop {
+  display: block;
+  width: var(--lp-sidebar-w);
+  background: var(--lp-sidebar-bg);
+  border-right: 1px solid var(--lp-border);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lp-border) transparent;
+}
+
+/* ============================================================
+   PAGE LAYOUT
+   Desktop: 2-col (sidebar | content)
+   ≤1023px: single column (sidebar hidden, cat-bar shown)
+   ============================================================ */
+.lp-main-layout {
+  display: grid;
+  grid-template-columns: var(--lp-sidebar-w) 1fr;
+  min-height: 100vh;
+  align-items: start;
+}
+
+.lp-content {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   HERO CAROUSEL
+   ============================================================ */
 .lp-hero {
-  padding: 2rem;
-  background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, var(--lp-bg) 70%);
+  padding: 1.5rem 1.5rem 1rem;
+  background: radial-gradient(circle at 50% 40%, #1a1a2e 0%, var(--lp-bg) 70%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
 }
 
 .lp-hero-graphic {
-  max-width: 800px;
+  position: relative;
   width: 100%;
-  margin-bottom: 2rem;
+  max-width: 960px;
+  display: flex;
+  align-items: center;
 }
+
+.lp-hero-img {
+  width: 100%;
+  height: clamp(200px, 35vw, 440px);
+  object-fit: cover;
+  border-radius: var(--lp-radius);
+  display: block;
+  transition: opacity 0.4s ease;
+}
+
+.lp-arrow {
+  position: absolute;
+  z-index: 2;
+  background: rgba(255,255,255,0.88);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #111;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: background var(--lp-ease), transform var(--lp-ease);
+}
+.lp-arrow:hover { background: #fff; transform: scale(1.08); }
+.lp-arrow--left  { left:  10px; }
+.lp-arrow--right { right: 10px; }
 
 .lp-hero-dots {
   display: flex;
   gap: 0.5rem;
+  margin-top: 1rem;
 }
-
 .lp-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px; height: 9px;
   border-radius: 50%;
-  background-color: #333;
+  background: #333;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--lp-ease), transform var(--lp-ease);
 }
+.lp-dot.active { background: var(--lp-orange); transform: scale(1.35); }
 
-.lp-dot.active {
-  background-color: var(--lp-accent-orange);
-}
+/* ============================================================
+   PRODUCT CAROUSEL
+   ============================================================ */
+.lp-offers { padding: 2rem 1.5rem; }
 
-/* Product Section */
 .lp-section-header {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
-  margin: 3rem 0;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
   text-transform: uppercase;
 }
-
 .lp-tag {
-  background-color: var(--lp-accent-orange);
-  color: black;
-  padding: 0.2rem 0.5rem;
-  border-radius: 2px;
-  font-size: 0.8rem;
+  background: var(--lp-orange);
+  color: #000;
+  padding: 0.22rem 0.55rem;
+  border-radius: 3px;
+  font-size: clamp(0.62rem, 1.5vw, 0.82rem);
 }
+.lp-section-star  { color: var(--lp-text-muted); }
+.lp-section-label { letter-spacing: 0.08em; }
+
+.lp-carousel-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.lp-nav-arrow {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--lp-border);
+  border-radius: 50%;
+  color: var(--lp-text-muted);
+  width: 40px; height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color var(--lp-ease), border-color var(--lp-ease);
+}
+.lp-nav-arrow:hover { color: var(--lp-orange); border-color: var(--lp-orange); }
 
 .lp-product-grid {
   display: flex;
-  justify-content: center;
-  gap: 2rem;
-  padding: 0 2rem;
+  flex: 1;
+  gap: 1.25rem;
+  overflow: hidden;
+  min-width: 0;
 }
 
+/* Card */
 .lp-product-card {
-  background-color: var(--lp-card-bg);
-  width: 320px;
+  flex: 1;
+  min-width: 0;
+  background: var(--lp-card-bg);
   border: 1px solid var(--lp-border);
+  border-radius: 10px;
   position: relative;
   overflow: hidden;
-  transition: transform 0.3s;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--lp-ease), border-color var(--lp-ease), box-shadow var(--lp-ease);
 }
-
 .lp-product-card:hover {
   transform: translateY(-5px);
-  border-color: var(--lp-accent-blue);
+  border-color: var(--lp-blue);
+  box-shadow: 0 8px 24px rgba(0,229,255,0.12);
 }
 
 .lp-card-tag {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: var(--lp-accent-orange);
-  color: black;
-  padding: 2px 6px;
-  font-size: 0.7rem;
+  top: 10px; right: 10px;
+  background: var(--lp-orange);
+  color: #000;
+  padding: 2px 8px;
+  font-size: 0.65rem;
   font-weight: 700;
+  border-radius: 3px;
 }
 
 .lp-card-image {
   width: 100%;
-  height: 200px;
+  height: clamp(130px, 18vw, 200px);
   object-fit: contain;
   padding: 1rem;
 }
 
 .lp-card-info {
-  padding: 1.5rem;
+  padding: 1rem;
   text-align: center;
   border-top: 1px solid var(--lp-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
 }
 
 .lp-card-title {
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
-  line-height: 1.4;
-  height: 2.8rem;
+  font-size: clamp(0.7rem, 1.2vw, 0.87rem);
+  line-height: 1.45;
+  margin-bottom: 0.45rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 .lp-card-category {
-  color: var(--lp-accent-orange);
-  font-size: 0.8rem;
-  margin-bottom: 0.5rem;
+  color: var(--lp-orange);
+  font-size: 0.72rem;
+  margin-bottom: 0.4rem;
 }
 
 .lp-card-price {
-  font-size: 1.2rem;
+  font-size: clamp(0.9rem, 1.8vw, 1.2rem);
   font-weight: 700;
+}
+
+.lp-old-price {
+  text-decoration: line-through;
+  font-size: 0.76rem;
+  opacity: 0.42;
+  margin-right: 0.45rem;
+  font-weight: 400;
 }
 
 .lp-stock-status {
   display: inline-block;
-  color: var(--lp-accent-orange);
-  border: 1px solid var(--lp-accent-orange);
-  padding: 2px 8px;
-  font-size: 0.7rem;
-  margin-top: 1rem;
+  color: var(--lp-orange);
+  border: 1px solid var(--lp-orange);
+  padding: 2px 10px;
+  font-size: 0.65rem;
+  border-radius: 3px;
+  margin-top: 0.7rem;
 }
 
-/* Awards */
-.lp-awards-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
-  padding: 4rem 2rem;
+.lp-featured-dots { justify-content: center; margin-top: 1.5rem; }
+
+/* ============================================================
+   INFO SECTION
+   ============================================================ */
+.lp-info-section {
+  padding: 0 0 2rem;
+  background: linear-gradient(180deg, #0d0d0d 0%, #0a0a0b 100%);
 }
 
-.lp-award-item {
+.lp-info-intro {
+  padding: 3rem 1.5rem 1rem;
   text-align: center;
 }
-
-.lp-award-image {
-  width: 100%;
-  max-width: 180px;
-  margin-bottom: 1rem;
+.lp-info-sub {
+  color: #4a90e2;
+  font-size: clamp(1.1rem, 3vw, 2rem);
+  font-weight: 500;
+  margin-bottom: 0.3rem;
 }
-
-.lp-award-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  max-width: 200px;
+.lp-info-title {
+  color: var(--lp-text-primary);
+  font-size: clamp(2rem, 6vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.7rem;
+}
+.lp-info-desc {
+  color: var(--lp-text-muted);
+  font-size: clamp(0.88rem, 1.8vw, 1.05rem);
+  max-width: 520px;
   margin: 0 auto;
+  line-height: 1.6;
 }
 
-/* Service Banner */
+/* ============================================================
+   SERVICE BANNER
+   ============================================================ */
 .lp-service-banner {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  padding: 2rem 0;
 }
 
 .lp-service-item {
-  background-color: var(--lp-accent-orange);
-  color: black;
-  padding: 3rem 2rem;
+  background: var(--lp-orange);
+  color: #000;
+  padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 2.5vw, 2rem);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   text-align: center;
-  border-right: 1px solid rgba(0,0,0,0.1);
+  border-right: 1px solid rgba(0,0,0,0.12);
+  gap: 0.4rem;
 }
+.lp-service-item:last-child { border-right: none; }
 
 .lp-service-icon {
-  font-size: 3rem;
-  margin-bottom: 1.5rem;
+  font-size: clamp(1.8rem, 3.5vw, 3rem);
+  margin-bottom: 0.7rem;
 }
-
 .lp-service-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-size: clamp(0.82rem, 1.8vw, 1.1rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
 }
-
 .lp-service-desc {
-  font-size: 0.75rem;
-  max-width: 250px;
-  opacity: 0.8;
+  font-size: clamp(0.65rem, 1.3vw, 0.78rem);
+  max-width: 260px;
+  opacity: 0.82;
+  line-height: 1.55;
 }
-
 .lp-conditions {
-  font-size: 0.6rem;
-  margin-top: 1rem;
-  opacity: 0.8;
+  font-size: 0.58rem;
+  margin-top: 0.35rem;
+  opacity: 0.7;
 }
 
-@media (max-width: 1024px) {
+
+/* ══════════════════════════════════════════════════════════
+   TABLET  768px – 1023px
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+
+  /* Show category bar, hide desktop sidebar */
+  .lp-cat-bar        { display: block; }
+  .lp-sidebar--desktop { display: none !important; }
+
+  /* Collapse to 1-column */
   .lp-main-layout {
     grid-template-columns: 1fr;
+    min-height: unset;
   }
-  .lp-sidebar {
-    display: none;
+
+  /* Hero */
+  .lp-hero { padding: 1.25rem 1.25rem 0.75rem; }
+  .lp-hero-img { height: clamp(200px, 40vw, 360px); }
+
+  /* Product carousel — 2 visible cards */
+  .lp-product-grid { gap: 1rem; }
+  .lp-card-image   { height: clamp(130px, 24vw, 180px); }
+  .lp-card-title   { font-size: 0.78rem; }
+
+  /* Service banner — 2 columns on tablet */
+  .lp-service-banner          { grid-template-columns: repeat(2, 1fr); }
+  .lp-service-item:nth-child(2) { border-right: none; }
+  .lp-service-item:nth-child(3) {
+    grid-column: 1 / -1;
+    border-right: none;
+    border-top: 1px solid rgba(0,0,0,0.12);
   }
+
+  /* Info intro */
+  .lp-info-intro { padding: 2.5rem 1.25rem 0.75rem; }
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE  < 640px
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 639px) {
+
+  /* Hero */
+  .lp-hero { padding: 0.9rem 0.75rem 0.5rem; }
+  .lp-hero-img {
+    height: clamp(150px, 52vw, 270px);
+    border-radius: 8px;
+  }
+  .lp-arrow { width: 32px; height: 32px; }
+
+  /* Offers */
+  .lp-offers         { padding: 1.25rem 0.75rem; }
+  .lp-section-header { font-size: 0.95rem; gap: 0.45rem; margin-bottom: 1.25rem; }
+
+  /* Product carousel — 1 visible card */
+  .lp-carousel-wrapper { gap: 0.4rem; }
+  .lp-nav-arrow        { width: 32px; height: 32px; }
+  .lp-product-grid     { gap: 0; }
+  .lp-card-image       { height: clamp(150px, 48vw, 230px); }
+  .lp-card-title       { font-size: 0.82rem; }
+  .lp-card-price       { font-size: 1rem; }
+
+  /* Service banner — single column */
+  .lp-service-banner { grid-template-columns: 1fr; }
+  .lp-service-item {
+    border-right: none;
+    border-bottom: 1px solid rgba(0,0,0,0.12);
+    grid-column: unset !important;
+    padding: 2rem 1.5rem;
+  }
+  .lp-service-item:last-child { border-bottom: none; }
+  .lp-service-icon   { font-size: 2.2rem; }
+  .lp-service-title  { font-size: 0.95rem; }
+  .lp-service-desc   { font-size: 0.72rem; }
+
+  /* Info */
+  .lp-info-intro { padding: 2rem 1rem 0.5rem; }
+  .lp-info-title { font-size: 2.5rem; }
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   XS  < 400px   (smallest phones: 320–399px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 399px) {
+
+  .lp-cat-bar     { padding: 0.4rem 0.75rem; }
+  .lp-cat-bar__btn { font-size: 0.72rem; padding: 0.3rem 0.6rem; }
+
+  .lp-hero { padding: 0.65rem 0.5rem 0.4rem; }
+  .lp-hero-img {
+    height: clamp(130px, 54vw, 190px);
+    border-radius: 6px;
+  }
+
+  .lp-offers         { padding: 1rem 0.5rem; }
+  .lp-section-header { font-size: 0.82rem; gap: 0.35rem; }
+  .lp-tag            { font-size: 0.58rem; }
+
+  .lp-nav-arrow  { width: 28px; height: 28px; }
+  .lp-arrow      { width: 26px; height: 26px; }
+
+  .lp-card-info  { padding: 0.7rem; }
+  .lp-card-title { font-size: 0.73rem; }
+  .lp-card-price { font-size: 0.9rem; }
+
+  .lp-info-intro { padding: 1.5rem 0.75rem 0.4rem; }
+  .lp-info-title { font-size: 2rem; }
+  .lp-info-sub   { font-size: 1rem; }
+
+  .lp-service-item  { padding: 1.5rem 1rem; }
+  .lp-service-icon  { font-size: 1.8rem; }
+  .lp-service-title { font-size: 0.82rem; }
 }
