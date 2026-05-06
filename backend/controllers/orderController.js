@@ -1604,9 +1604,9 @@
 const Order = require("../models/Order");
 const Post = require("../models/Post");
 const User = require("../models/User");
-const { Resend } = require("resend");
+const axios = require('axios');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJSsLVH10g1sRMrPfazSE0OP2r3-ye83RlL2a4IqslTOjVofV3Avs9Sl1xneWa_8Rb/exec";
 
 const getSafeOrderFields = (order) => {
   return {
@@ -1667,19 +1667,14 @@ async function sendPaymentEmail(userEmail, order, paymentDetails) {
   };
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'Wonder Choice <onboarding@resend.dev>',
+    await axios.post(GOOGLE_SCRIPT_URL, {
       to: userEmail,
       subject: mailOptions.subject,
       html: mailOptions.html,
     });
-    
-    if (error) {
-      throw new Error(error.message);
-    }
     console.log(`Payment confirmation email sent to ${userEmail}`);
   } catch (error) {
-    console.error("Error sending payment email:", error);
+    console.error("Error sending payment email:", error.response?.data || error.message);
     throw error;
   }
 }
@@ -1816,19 +1811,15 @@ exports.processPayment = async (req, res) => {
           `,
         };
 
-        const { data, error } = await resend.emails.send({
-          from: 'Wonder Choice <onboarding@resend.dev>',
+        await axios.post(GOOGLE_SCRIPT_URL, {
           to: updatedOrder.user.email,
           subject: mailOptions.subject,
           html: mailOptions.html,
         });
 
-        if (error) {
-          throw new Error(error.message);
-        }
         console.log('Payment confirmation email sent to:', updatedOrder.user.email);
       } catch (emailError) {
-        console.error('Failed to send payment email via Resend:', emailError);
+        console.error('Failed to send payment email:', emailError.response?.data || emailError.message);
       }
     }
 

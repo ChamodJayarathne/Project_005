@@ -1,9 +1,8 @@
 const Order = require("../models/Order");
 const Post = require("../models/Post");
 const User = require("../models/User");
-const { Resend } = require("resend");
-const resend = new Resend(process.env.RESEND_API_KEY);
-const cloudinary = require("../config/cloudinary");
+const axios = require('axios');
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJSsLVH10g1sRMrPfazSE0OP2r3-ye83RlL2a4IqslTOjVofV3Avs9Sl1xneWa_8Rb/exec";
 
 // Email sending function
 // async function sendPostEmails(emails, post) {
@@ -130,19 +129,14 @@ async function sendPostEmails(emails, post) {
   };
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: mailOptions.from,
-      to: validEmails,
+    await axios.post(GOOGLE_SCRIPT_URL, {
+      to: validEmails.join(","),
       subject: mailOptions.subject,
       html: mailOptions.html,
     });
-
-    if (error) {
-      throw new Error(error.message);
-    }
     console.log(`Emails sent successfully to ${validEmails.length} recipients`);
   } catch (err) {
-    console.error("Error sending emails via Resend:", err);
+    console.error("Error sending emails via Webhook:", err.response?.data || err.message);
     // Don't throw the error - just log it and continue
     console.log("Continuing with post creation despite email error");
   }

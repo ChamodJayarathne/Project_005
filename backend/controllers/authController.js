@@ -4,7 +4,8 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { OAuth2Client } = require("google-auth-library");
 const cloudinary = require("../config/cloudinary");
-const { Resend } = require("resend");
+const axios = require('axios');
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJSsLVH10g1sRMrPfazSE0OP2r3-ye83RlL2a4IqslTOjVofV3Avs9Sl1xneWa_8Rb/exec";
 
 // Initialize Google OAuth client
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -26,8 +27,7 @@ const client = new OAuth2Client(CLIENT_ID);
 //   }
 // };
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 // Password Reset - Request Reset Link
 const requestPasswordReset = async (req, res) => {
@@ -138,17 +138,12 @@ const requestPasswordReset = async (req, res) => {
     //   `
     // };
 
-    // Send email via Resend
-    const { data, error } = await resend.emails.send({
-      from: 'Wonder Choice <onboarding@resend.dev>', // Update this to your verified domain later! e.g. 'hello@wonder-choice.com'
+    // Send email via Google Apps Script Webhook
+    await axios.post(GOOGLE_SCRIPT_URL, {
       to: user.email,
       subject: mailOptions.subject,
       html: mailOptions.html,
     });
-
-    if (error) {
-      throw new Error(error.message);
-    }
     
     res.json({ 
       success: true, 
@@ -286,16 +281,15 @@ const resetPassword = async (req, res) => {
       `
     };
 
-    // Send email via Resend
-    const { data, error } = await resend.emails.send({
-      from: 'Wonder Choice <onboarding@resend.dev>',
-      to: user.email,
-      subject: mailOptions.subject,
-      html: mailOptions.html,
-    });
-    
-    if (error) {
-      console.error("Resend error:", error.message);
+    // Send email via Google Apps Script Webhook
+    try {
+      await axios.post(GOOGLE_SCRIPT_URL, {
+        to: user.email,
+        subject: mailOptions.subject,
+        html: mailOptions.html,
+      });
+    } catch (error) {
+      console.error("Email Webhook error:", error.response?.data || error.message);
     }
 
     res.json({ 
@@ -406,16 +400,11 @@ const registerUser = async (req, res) => {
     };
 
     try {
-      const { data, error } = await resend.emails.send({
-        from: 'Wonder Choice <onboarding@resend.dev>',
+      await axios.post(GOOGLE_SCRIPT_URL, {
         to: newUser.email,
         subject: welcomeMailOptions.subject,
         html: welcomeMailOptions.html,
       });
-
-      if (error) {
-        throw new Error(error.message);
-      }
       console.log("Welcome email sent successfully to:", newUser.email);
     } catch (mailError) {
       console.error("Error sending welcome email:", mailError);
