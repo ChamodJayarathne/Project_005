@@ -31,9 +31,6 @@ const app = express();
 // app.use(passport.initialize());
 // app.use(passport.session());
 
-
-app.use(cors());
-
 app.use(
   cors({
     origin: process.env.FRONTEND_BASE_URL,
