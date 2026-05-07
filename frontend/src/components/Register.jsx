@@ -379,7 +379,7 @@ const sharedStyles = `
   .auth-nav-btn {
     position: fixed;
     top: 16px;
-    right: 16px;
+    right: 165px;
     z-index: 200;
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.12);
@@ -572,6 +572,7 @@ const sharedStyles = `
     .auth-hero   { display: block; }
     .auth-layout { justify-content: flex-start; }
     .auth-card   { max-width: 440px; }
+    .auth-nav-btn { top: 16px; right: 32px; }
   }
 
   /* ══════════════════════════════════════════

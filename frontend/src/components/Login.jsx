@@ -396,7 +396,7 @@ function LoginPage({ setUser }) {
         .home-btn {
           position: fixed;
           top: 16px;
-          right: 16px;
+          right: 165px;
           z-index: 200;
           background: rgba(255,255,255,0.07);
           border: 1px solid rgba(255,255,255,0.12);
@@ -617,6 +617,7 @@ function LoginPage({ setUser }) {
           .hero-text   { display: block; }
           .login-layout { justify-content: flex-start; }
           .login-card  { max-width: 420px; }
+          .home-btn    { top: 16px; right: 32px; }
         }
 
         /* ══════════════════════════════════════

@@ -159,7 +159,7 @@
 //                 <h3 className="font-semibold text-lg">
 //                   Joined Date: {new Date(user.createdAt).toLocaleDateString()}
 //                 </h3>
-               
+
 //               </div> */}
 //             </div>
 
@@ -255,13 +255,13 @@ export default function Accounts() {
   // const handleToggleStatus = async (userId, currentStatus) => {
   //   const newStatus = !currentStatus;
   //   const action = newStatus ? "enable" : "disable";
-    
+
   //   if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
 
   //   try {
   //     setUpdatingStatus({ ...updatingStatus, [userId]: true });
   //     const token = localStorage.getItem("token");
-      
+
   //     await axios.put(
   //       `${baseUrl}/api/auth/users/${userId}`,
   //       { isActive: newStatus },
@@ -283,7 +283,7 @@ export default function Accounts() {
   //   }
   // };
 
-    const fetchUsers = async () => {
+  const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(`${baseUrl}/api/auth/users`, {
@@ -312,6 +312,9 @@ export default function Accounts() {
       });
       setUsers(users.filter((user) => user._id !== userId));
       toast.success("User deleted successfully");
+      window.location.reload();
+
+
     } catch (err) {
       setError(err.response?.data?.msg || "Failed to delete user");
       toast.error(err.response?.data?.msg || "Failed to delete user");
@@ -320,128 +323,128 @@ export default function Accounts() {
 
 
   const handleToggleStatus = async (userId, currentStatus) => {
-  const newStatus = !currentStatus;
-  const action = newStatus ? "enable" : "disable";
-  
-  if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
+    const newStatus = !currentStatus;
+    const action = newStatus ? "enable" : "disable";
 
-  try {
-    setUpdatingStatus({ ...updatingStatus, [userId]: true });
-    const token = localStorage.getItem("token");
-    
-    // Use the dedicated PATCH endpoint for toggling status
-    const response = await axios.patch(
-      `${baseUrl}/api/auth/users/${userId}/toggle-status`,
-      { isActive: newStatus },
-      {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-      }
-    );
+    if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
 
-    console.log("Toggle status response:", response.data);
+    try {
+      setUpdatingStatus({ ...updatingStatus, [userId]: true });
+      const token = localStorage.getItem("token");
 
-    // Update local state with the new status
-    setUsers(users.map(user => 
-      user._id === userId ? { ...user, isActive: newStatus } : user
-    ));
+      // Use the dedicated PATCH endpoint for toggling status
+      const response = await axios.patch(
+        `${baseUrl}/api/auth/users/${userId}/toggle-status`,
+        { isActive: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        }
+      );
 
-    // Show success message
-    toast.success(response.data.msg || `Account ${action}d successfully`);
-    
-    // Optional: Refresh users from server to ensure consistency
-    setTimeout(() => {
-      fetchUsers();
-    }, 500);
+      console.log("Toggle status response:", response.data);
 
-  } catch (err) {
-    console.error("Error updating user status:", err);
-    const errorMsg = err.response?.data?.msg || `Failed to ${action} account`;
-    
-    toast.error(errorMsg);
-    
-    // Revert local state on error
-    setUsers(users.map(user => 
-      user._id === userId ? { ...user, isActive: currentStatus } : user
-    ));
-  } finally {
-    setUpdatingStatus({ ...updatingStatus, [userId]: false });
-  }
-};
+      // Update local state with the new status
+      setUsers(users.map(user =>
+        user._id === userId ? { ...user, isActive: newStatus } : user
+      ));
 
-//  const handleToggleStatus = async (userId, currentStatus) => {
-//     const newStatus = !currentStatus;
-//     const action = newStatus ? "enable" : "disable";
-    
-//     if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
+      // Show success message
+      toast.success(response.data.msg || `Account ${action}d successfully`);
 
-//     try {
-//       setUpdatingStatus({ ...updatingStatus, [userId]: true });
-//       const token = localStorage.getItem("token");
-      
-//       // Use PUT request to update the user with ALL required fields
-//       const userToUpdate = users.find(user => user._id === userId);
-//       if (!userToUpdate) {
-//         throw new Error("User not found");
-//       }
+      // Optional: Refresh users from server to ensure consistency
+      setTimeout(() => {
+        fetchUsers();
+      }, 500);
 
-//       // Prepare update data with all required fields
-//       const updateData = {
-//         username: userToUpdate.username,
-//         email: userToUpdate.email,
-//         role: userToUpdate.role,
-//         phoneNumber: userToUpdate.phoneNumber,
-//         isActive: newStatus // This is the key change
-//       };
+    } catch (err) {
+      console.error("Error updating user status:", err);
+      const errorMsg = err.response?.data?.msg || `Failed to ${action} account`;
 
-//       console.log("Updating user with data:", updateData);
-      
-//       await axios.put(
-//         `${baseUrl}/api/auth/users/${userId}`,
-//         updateData,
-//         {
-//           headers: { 
-//             Authorization: `Bearer ${token}`,
-//             'Content-Type': 'application/json'
-//           },
-//         }
-//       );
+      toast.error(errorMsg);
 
-//       // Update local state with the new status
-//       setUsers(users.map(user => 
-//         user._id === userId ? { ...user, isActive: newStatus } : user
-//       ));
+      // Revert local state on error
+      setUsers(users.map(user =>
+        user._id === userId ? { ...user, isActive: currentStatus } : user
+      ));
+    } finally {
+      setUpdatingStatus({ ...updatingStatus, [userId]: false });
+    }
+  };
 
-//       // Show success message
-//       toast.success(`Account ${action}d successfully`);
-      
-//       // Refresh users from server to ensure consistency
-//       setTimeout(() => {
-//         fetchUsers();
-//       }, 500);
+  //  const handleToggleStatus = async (userId, currentStatus) => {
+  //     const newStatus = !currentStatus;
+  //     const action = newStatus ? "enable" : "disable";
 
-//     } catch (err) {
-//       console.error("Error updating user status:", err);
-//       const errorMsg = err.response?.data?.msg || err.response?.data?.message || `Failed to ${action} account`;
-      
-//       // Show detailed error in console for debugging
-//       if (err.response) {
-//         console.error("Response error:", err.response.data);
-//         console.error("Response status:", err.response.status);
-//       }
-      
-//       toast.error(errorMsg);
-      
-//       // Revert local state on error
-//       setUsers(users.map(user => 
-//         user._id === userId ? { ...user, isActive: currentStatus } : user
-//       ));
-//     } finally {
-//       setUpdatingStatus({ ...updatingStatus, [userId]: false });
-//     }
-//   }; 
+  //     if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
+
+  //     try {
+  //       setUpdatingStatus({ ...updatingStatus, [userId]: true });
+  //       const token = localStorage.getItem("token");
+
+  //       // Use PUT request to update the user with ALL required fields
+  //       const userToUpdate = users.find(user => user._id === userId);
+  //       if (!userToUpdate) {
+  //         throw new Error("User not found");
+  //       }
+
+  //       // Prepare update data with all required fields
+  //       const updateData = {
+  //         username: userToUpdate.username,
+  //         email: userToUpdate.email,
+  //         role: userToUpdate.role,
+  //         phoneNumber: userToUpdate.phoneNumber,
+  //         isActive: newStatus // This is the key change
+  //       };
+
+  //       console.log("Updating user with data:", updateData);
+
+  //       await axios.put(
+  //         `${baseUrl}/api/auth/users/${userId}`,
+  //         updateData,
+  //         {
+  //           headers: { 
+  //             Authorization: `Bearer ${token}`,
+  //             'Content-Type': 'application/json'
+  //           },
+  //         }
+  //       );
+
+  //       // Update local state with the new status
+  //       setUsers(users.map(user => 
+  //         user._id === userId ? { ...user, isActive: newStatus } : user
+  //       ));
+
+  //       // Show success message
+  //       toast.success(`Account ${action}d successfully`);
+
+  //       // Refresh users from server to ensure consistency
+  //       setTimeout(() => {
+  //         fetchUsers();
+  //       }, 500);
+
+  //     } catch (err) {
+  //       console.error("Error updating user status:", err);
+  //       const errorMsg = err.response?.data?.msg || err.response?.data?.message || `Failed to ${action} account`;
+
+  //       // Show detailed error in console for debugging
+  //       if (err.response) {
+  //         console.error("Response error:", err.response.data);
+  //         console.error("Response status:", err.response.status);
+  //       }
+
+  //       toast.error(errorMsg);
+
+  //       // Revert local state on error
+  //       setUsers(users.map(user => 
+  //         user._id === userId ? { ...user, isActive: currentStatus } : user
+  //       ));
+  //     } finally {
+  //       setUpdatingStatus({ ...updatingStatus, [userId]: false });
+  //     }
+  //   }; 
 
   if (loading)
     return (
@@ -479,19 +482,17 @@ export default function Accounts() {
         {users.map((user) => (
           <div
             key={user._id}
-            className={`bg-white rounded-lg shadow-md h-[340px] overflow-hidden relative hover:shadow-lg transition-shadow cursor-pointer ${
-              !user.isActive ? "opacity-70 border-2 border-red-200" : ""
-            }`}
+            className={`bg-white rounded-lg shadow-md h-[340px] overflow-hidden relative hover:shadow-lg transition-shadow cursor-pointer ${!user.isActive ? "opacity-70 border-2 border-red-200" : ""
+              }`}
             onClick={() => navigate(`/admin/users/${user._id}`)}
           >
             <div className="p-6">
               {/* Account Status Badge */}
               <div className="absolute top-2 right-2">
-                <div className={`px-2 py-1 text-xs rounded-full flex items-center ${
-                  user.isActive 
-                    ? "bg-green-100 text-green-800" 
-                    : "bg-red-100 text-red-800"
-                }`}>
+                <div className={`px-2 py-1 text-xs rounded-full flex items-center ${user.isActive
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+                  }`}>
                   {user.isActive ? (
                     <>
                       <FiUnlock className="mr-1" size={10} />
@@ -535,11 +536,10 @@ export default function Accounts() {
               <div className="flex items-center text-gray-600 mb-2">
                 <FiShield className="mr-2" />
                 <span
-                  className={`px-2 py-1 text-xs rounded-full ${
-                    user.role === "admin"
-                      ? "bg-purple-100 text-purple-800"
-                      : "bg-green-100 text-green-800"
-                  }`}
+                  className={`px-2 py-1 text-xs rounded-full ${user.role === "admin"
+                    ? "bg-purple-100 text-purple-800"
+                    : "bg-green-100 text-green-800"
+                    }`}
                 >
                   {user.role}
                 </span>
@@ -566,9 +566,8 @@ export default function Accounts() {
                       handleToggleStatus(user._id, user.isActive);
                     }}
                     disabled={updatingStatus[user._id]}
-                    className={`flex items-center text-sm font-medium ${
-                      user.isActive ? "text-green-600" : "text-red-600"
-                    }`}
+                    className={`flex items-center text-sm font-medium ${user.isActive ? "text-green-600" : "text-red-600"
+                      }`}
                   >
                     {updatingStatus[user._id] ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
