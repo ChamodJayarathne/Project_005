@@ -262,29 +262,65 @@ export default function OrderDetail() {
     const startY = addLetterhead(doc, `Order Details - #${order._id}`, logo);
     let yPos = startY;
 
+    const userName =
+      typeof order.user === "object" && order.user !== null
+        ? order.user.username || "N/A"
+        : order.user || "N/A";
+
+    const userEmail =
+      typeof order.user === "object" && order.user !== null
+        ? order.user.email || ""
+        : "";
+
+    // Customer / User info
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40, 53, 147);
+    doc.text(`Customer / User: ${userName}`, margin, yPos);
+    yPos += 6;
+
+    if (userEmail) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Email: ${userEmail}`, margin, yPos);
+      yPos += 8;
+    }
+
+    yPos += 4;
+
     // Add order information
-    doc.setFontSize(12);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0);
-    doc.text(`Product Name: ${order.productName}`, margin, yPos);
-    yPos += 10;
-    doc.text(`Status: ${order.status.toUpperCase()}`, margin, yPos);
-    yPos += 10;
-    doc.text(`Created: ${new Date(order.createdAt).toLocaleString()}`, margin, yPos);
+    doc.text(`Product Name: ${order.productName || "N/A"}`, margin, yPos);
+    yPos += 8;
+    doc.text(`Status: ${(order.status || "N/A").toUpperCase()}`, margin, yPos);
+    yPos += 8;
+    doc.text(
+      `Created: ${order.createdAt ? new Date(order.createdAt).toLocaleString() : "N/A"}`,
+      margin,
+      yPos
+    );
     yPos += 15;
 
     // Add payment summary
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
+    doc.setTextColor(40, 53, 147);
     doc.text("Payment Summary", margin, yPos);
     yPos += 10;
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
     const summaryRows = [
-      ["Original Full Amount", `RS. ${order.originalFullAmount?.toLocaleString()}`],
-      ["Original Expected Profit", `RS. ${order.originalExpectedProfit?.toLocaleString()}`],
-      ["Full Amount Remaining", `RS. ${order.fullAmount?.toLocaleString()}`],
-      ["Expected Profit Remaining", `RS. ${order.expectedProfit?.toLocaleString()}`],
+      ["Customer / User", userName],
+      ...(userEmail ? [["User Email", userEmail]] : []),
+      ["Original Full Amount", `RS. ${(order.originalFullAmount ?? order.fullAmount ?? 0).toLocaleString()}`],
+      ["Original Expected Profit", `RS. ${(order.originalExpectedProfit ?? order.expectedProfit ?? 0).toLocaleString()}`],
+      ["Full Amount Remaining", `RS. ${(order.fullAmount ?? 0).toLocaleString()}`],
+      ["Expected Profit Remaining", `RS. ${(order.expectedProfit ?? 0).toLocaleString()}`],
       ["Total Paid", `RS. ${totalPaid.toLocaleString()}`],
     ];
 
@@ -294,6 +330,10 @@ export default function OrderDetail() {
       theme: "plain",
       margin: { left: margin },
       styles: { fontSize: 10, cellPadding: 2 },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 55 },
+        1: { cellWidth: "auto" },
+      },
     });
     yPos = doc.lastAutoTable.finalY + 15;
 

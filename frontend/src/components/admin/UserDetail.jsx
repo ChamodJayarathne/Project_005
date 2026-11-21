@@ -878,6 +878,9 @@ export default function UserDetail() {
         setUser(userResponse.data);
         setPosts(postsResponse.data);
         setOrders(ordersResponse.data);
+        if (postsResponse.data?.length === 0 && ordersResponse.data?.length > 0) {
+          setActiveTab("orders");
+        }
       } catch (err) {
         setError(err.response?.data?.msg || "Failed to fetch data");
       } finally {
@@ -957,22 +960,33 @@ export default function UserDetail() {
     const pageWidth = doc.internal.pageSize.width;
     const margin = 15;
 
+    // Default to the tab that has data if current active tab is empty
+    let currentTab = activeTab;
+    if (currentTab === "posts" && posts.length === 0 && orders.length > 0) {
+      currentTab = "orders";
+    } else if (currentTab === "orders" && orders.length === 0 && posts.length > 0) {
+      currentTab = "posts";
+    }
+
     // Use standard letterhead
-    const reportTitle = activeTab === "posts" ? "Admin Posts Report" : "User Orders Report";
+    const reportTitle = currentTab === "posts" ? "Admin Posts Report" : "User Orders Report";
     const startY = addLetterhead(doc, reportTitle, logo);
     let yPos = startY;
 
     // User header info
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(
-      `User: ${user.username} (${user.email})`,
-      margin,
-      yPos
-    );
-    yPos += 15;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40, 53, 147);
+    doc.text(`Customer / User: ${user.username || "N/A"}`, margin, yPos);
+    yPos += 6;
 
-    if (activeTab === "posts" && posts.length > 0) {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Email: ${user.email || "N/A"}`, margin, yPos);
+    yPos += 12;
+
+    if (currentTab === "posts" && posts.length > 0) {
       doc.setFontSize(16);
       doc.setTextColor(40, 53, 147);
       doc.text("Detailed Posts Information", margin, yPos);
@@ -987,7 +1001,7 @@ export default function UserDetail() {
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
         doc.text(
-          `Post #${index + 1}: ${post.title || "Untitled Post"}`,
+          `Post #${index + 1}: ${post.productName || post.title || "Untitled Post"}`,
           margin,
           yPos
         );
@@ -996,22 +1010,27 @@ export default function UserDetail() {
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
         doc.text(
-          `Status: ${post.status.toUpperCase()} | Created: ${new Date(
+          `Status: ${(post.status || "N/A").toUpperCase()} | Created: ${post.createdAt ? new Date(
             post.createdAt
-          ).toLocaleDateString()}`,
+          ).toLocaleDateString() : "N/A"}`,
           margin,
           yPos
         );
         yPos += 10;
 
+        const postAmount = post.fullAmount || post.originalFullAmount || 0;
+        const postProfit = post.expectedProfit || post.originalExpectedProfit || 0;
+        const postUnitPrice = post.unitPrice || 0;
+
         const postDetails = [
           ["Product Name", post.productName || "N/A"],
-          ["Amount", `RS.${post.fullAmount?.toLocaleString() || "0"}`],
+          ["User", user.username || "N/A"],
+          ["Amount", `RS. ${Number(postAmount).toLocaleString()}`],
           [
             "Expected Profit",
-            `RS.${post.expectedProfit?.toLocaleString() || "0"}`,
+            `RS. ${Number(postProfit).toLocaleString()}`,
           ],
-          ["Unit Price", `RS.${post.unitPrice?.toLocaleString() || "0"}`],
+          ["Unit Price", `RS. ${Number(postUnitPrice).toLocaleString()}`],
         ];
 
         autoTable(doc, {
@@ -1035,40 +1054,65 @@ export default function UserDetail() {
           yPos += 15;
         }
       });
-    } else if (activeTab === "orders" && orders.length > 0) {
+    } else if (currentTab === "orders" && orders.length > 0) {
       doc.setFontSize(16);
       doc.setTextColor(40, 53, 147);
       doc.text("Detailed Orders Information", margin, yPos);
-      yPos += 15;
+      yPos += 12;
 
-      const ordersData = orders.map((order) => [
-        order.productName || "N/A",
-        `RS.${order.fullAmount?.toLocaleString() || "0"}`,
-        `RS.${order.expectedProfit?.toLocaleString() || "0"}`,
-        order.status.toUpperCase(),
-        new Date(order.createdAt).toLocaleDateString(),
-      ]);
+      const ordersData = orders.map((order) => {
+        const amount = order.originalFullAmount || order.fullAmount || 0;
+        const profit = order.originalExpectedProfit || order.expectedProfit || 0;
+        const userName = order.user?.username || user.username || "N/A";
+        return [
+          order.productName || "N/A",
+          userName,
+          `RS. ${Number(amount).toLocaleString()}`,
+          `RS. ${Number(profit).toLocaleString()}`,
+          (order.status || "N/A").toUpperCase(),
+          order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A",
+        ];
+      });
+
+      const totalAmount = orders.reduce((sum, order) => {
+        return sum + (order.originalFullAmount || order.fullAmount || 0);
+      }, 0);
+      const totalProfit = orders.reduce((sum, order) => {
+        return sum + (order.originalExpectedProfit || order.expectedProfit || 0);
+      }, 0);
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Product", "Amount", "Profit", "Status", "Date"]],
+        head: [["Product", "User", "Amount", "Profit", "Status", "Date"]],
         body: ordersData,
-        margin: { left: margin },
+        foot: [
+          [
+            "Total",
+            "",
+            `RS. ${Number(totalAmount).toLocaleString()}`,
+            `RS. ${Number(totalProfit).toLocaleString()}`,
+            "",
+            "",
+          ],
+        ],
+        margin: { left: margin, right: margin },
         styles: { cellPadding: 3, fontSize: 9 },
         columnStyles: {
-          0: { cellWidth: 30 },
-          1: { cellWidth: 20 },
-          2: { cellWidth: 20 },
-          3: { cellWidth: 20 },
-          4: { cellWidth: 20 },
+          0: { cellWidth: 42 },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 30 },
+          4: { cellWidth: 22 },
+          5: { cellWidth: 21 },
         },
         headStyles: { fillColor: [40, 53, 147] },
+        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold" },
         alternateRowStyles: { fillColor: [240, 240, 240] },
       });
     } else {
       doc.setFontSize(12);
       doc.setTextColor(100, 100, 100);
-      doc.text(`No ${activeTab} found for this user`, pageWidth / 2, yPos, {
+      doc.text(`No ${currentTab} found for this user`, pageWidth / 2, yPos, {
         align: "center",
       });
     }
@@ -1087,7 +1131,7 @@ export default function UserDetail() {
     }
 
     doc.save(
-      `User_${activeTab}_Report_${user.username || userId
+      `User_${currentTab}_Report_${user.username || userId
       }_${new Date().toLocaleDateString()}.pdf`
     );
   };
@@ -1502,9 +1546,11 @@ export default function UserDetail() {
                           <td className="px-6 py-4">
                             <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${order.status === "approved"
                                 ? "bg-green-100 text-green-800"
-                                : order.status === "rejected"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-yellow-100 text-yellow-800"
+                                : order.status === "completed"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : order.status === "rejected"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
                               }`}>
                               {order.status.toUpperCase()}
                             </span>
@@ -1527,7 +1573,7 @@ export default function UserDetail() {
                                   </button>
                                 </>
                               )}
-                              {order.status === "approved" && (
+                              {(order.status === "approved" || order.status === "completed") && (
                                 <Link
                                   to={`/admin/orders/${order._id}`}
                                   className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
@@ -1559,9 +1605,11 @@ export default function UserDetail() {
                         </div>
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${order.status === "approved"
                             ? "bg-green-100 text-green-800"
-                            : order.status === "rejected"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
+                            : order.status === "completed"
+                              ? "bg-blue-100 text-blue-800"
+                              : order.status === "rejected"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
                           }`}>
                           {order.status.toUpperCase()}
                         </span>
@@ -1599,7 +1647,7 @@ export default function UserDetail() {
                             </button>
                           </div>
                         )}
-                        {order.status === "approved" && (
+                        {(order.status === "approved" || order.status === "completed") && (
                           <Link
                             to={`/admin/orders/${order._id}`}
                             className="block w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-center transition-colors"

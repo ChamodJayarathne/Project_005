@@ -48,18 +48,18 @@ export const addLetterhead = (doc, title, logoImageData) => {
   doc.setFont("helvetica", "bold");
   doc.text(title, margin, yPos);
   
-  // 5. Add Generation Date (Right Aligned with title)
+  // 5. Add Generation Date (Placed slightly down for better alignment and spacing)
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...lightGrey);
   doc.text(
     `Generated on: ${new Date().toLocaleString()}`,
     pageWidth - margin,
-    yPos,
+    yPos + 5,
     { align: "right" }
   );
 
-  yPos += 10;
+  yPos += 12;
   
   return yPos; // Return the current Y position for the content to start
 };
